@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# Workspace dependencies
+pplib = { path = "../pplib" }
+
 anyhow = "1.0"
 bincode = "1.3"
 chrono = { version = "0.4", features = ["serde", "wasmbind", "js-sys"] }

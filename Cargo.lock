@@ -685,6 +685,7 @@ dependencies = [
  "gloo",
  "lazy_static",
  "log",
+ "pplib",
  "rand",
  "serde",
  "serde_with",
