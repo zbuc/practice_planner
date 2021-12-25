@@ -62,7 +62,7 @@ impl PracticePlannerApp {
         // if entry.completed {
         //     class.push(" completed");
         // }
-        log::info!("making the thing");
+        log::info!("making the category item");
         html! {
             <li {class}>
                 <div class="view">
@@ -77,6 +77,37 @@ impl PracticePlannerApp {
                 </div>
                 // { self.view_entry_edit_input((idx, category), link) }
             </li>
+        }
+    }
+
+    fn view_category_list(
+        &self,
+        category_list: &Vec<PracticeCategory>,
+        link: &Scope<Self>,
+    ) -> Html {
+        let mut class = Classes::from("todo");
+        // if entry.editing {
+        //     class.push(" editing");
+        // }
+        // if entry.completed {
+        //     class.push(" completed");
+        // }
+        log::info!("making the category list");
+
+        html! {
+            <>
+            <ul class="todo-list">
+            {
+                if self.scheduler.get_todays_schedule().is_some() {
+                    log::info!("got a schedule for today");
+                    html! { for self.scheduler.get_todays_schedule().unwrap().iter().enumerate().map(|e| self.view_category(e, link)) }
+                } else {
+                    log::info!("no schedule available :(");
+                    html! {}
+                }
+            }
+            </ul>
+            </>
         }
     }
 }
@@ -147,7 +178,12 @@ impl Component for PracticePlannerApp {
                 // self.state.toggle_edit(idx);
             }
             Msg::BeginPractice => {
-                self.scheduler.start_daily_practice();
+                self.scheduler
+                    .start_daily_practice()
+                    .expect("failed daily practice");
+                self.scheduler
+                    .update_todays_schedule(false)
+                    .expect("able to update schedule");
                 // let status = !self.state.is_all_completed();
                 // self.state.toggle_all(status);
             }
@@ -178,6 +214,10 @@ impl Component for PracticePlannerApp {
         // } else {
         //     ""
         // };
+        let category_list = self
+            .scheduler
+            .get_todays_schedule()
+            .expect("unable to retrieve today's schedule");
         html! {
             <div class="todomvc-wrapper">
                 <section class="todoapp">
@@ -195,17 +235,8 @@ impl Component for PracticePlannerApp {
                         />
                         <label for="toggle-all" />
                         <h2 class="todo-list">{ "Today's Schedule" }</h2>
-                        <ul class="todo-list">
-                        {
-                            if self.scheduler.get_todays_schedule().is_some() {
-                                log::info!("hgey");
-                                html! { for self.scheduler.get_todays_schedule().unwrap().iter().enumerate().map(|e| self.view_category(e, ctx.link())) }
-                            } else {
-                                html! {}
-                            }
-                        }
+                        {self.view_category_list(category_list, ctx.link())}
                             // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
-                        </ul>
                         <button class="favorite styled"
                                 type="button"
                                 onclick={ctx.link().callback(|_| Msg::BeginPractice)}

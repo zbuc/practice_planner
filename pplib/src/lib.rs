@@ -284,7 +284,8 @@ impl SchedulePlanner {
         // unset today's practice on Self
         self.todays_schedule = None;
 
-        self.save_to_disk()?;
+        // TODO can't save to disk on wasm
+        // self.save_to_disk()?;
         Ok(())
     }
 
