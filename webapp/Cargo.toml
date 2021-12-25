@@ -20,6 +20,7 @@ serde_with = { version = "1.11", features = ["chrono"] }
 text_io = "0.1"
 thiserror = "1.0"
 wasm-logger = "0.2.0"
+wee_alloc = "0.4.5"
 yew = "0.19"
 
 [dependencies.web-sys]

@@ -1,3 +1,4 @@
+#![recursion_limit = "1024"]
 use std;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
@@ -25,6 +26,10 @@ use yew::{
 };
 
 use pplib::{PracticeCategory, PracticeSkill, SchedulePlanner};
+
+// Use `wee_alloc` as the global allocator.
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 pub enum Msg {
     Add(String),
