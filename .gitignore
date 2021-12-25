@@ -1,3 +1,9 @@
-/target
-/saved_data
-/dist
+target/
+saved_data/
+dist/
+debug/
+Cargo.lock
+.swp
+.idea
+**/*.rs.bk
+*.pdb
