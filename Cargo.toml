@@ -1,0 +1,19 @@
+[package]
+name = "practice_planner"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+bincode = "1.3.3"
+chrono = { version = "0.4", features = ["serde"] }
+lazy_static = "1.2.0"
+rand = "0.8.0"
+rodio = "0.14.0"
+serde = { version = "1.0.132", features = ["derive"] }
+serde_with = { version = "1.11.0", features = ["chrono"] }
+text_io = "0.1.9"
+thiserror = "1.0"
+tokio = { version = "1.15.0", features = ["full"] }
