@@ -10,12 +10,11 @@ use std::io::BufReader;
 use std::path::Path;
 
 use anyhow::Result;
-use chrono::serde::ts_seconds;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{Date, DateTime, Duration, Utc};
 use rand::prelude::*;
 use rand::seq::SliceRandom;
-use rodio::{Decoder, OutputStream, Sink};
-use rodio::{OutputStreamHandle, Source};
+use rodio::Source;
+use rodio::{Decoder, OutputStream};
 use serde::{Deserialize, Serialize};
 use text_io::read;
 use thiserror::Error;
@@ -69,7 +68,7 @@ pub struct PracticeSkill {
     pub skill_name: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, Hash, PartialOrd, Ord, PartialEq, Eq, Debug)]
 pub struct PracticeCategory {
     pub category_name: String,
 }
@@ -82,6 +81,8 @@ pub struct SchedulePlanner {
     category_practice_time: Duration,
     /// The max number of days allowed to elapse without practicing a category.
     category_repeat_days: usize,
+    /// The number of categories to practice per day.
+    categories_per_day: usize,
     categories: Vec<PracticeCategory>,
     /// BTreeMap containing historical practice sessions.
     history: BTreeMap<DateTime<Utc>, Vec<PracticeCategory>>,
@@ -99,6 +100,7 @@ impl SchedulePlanner {
             categories: DEFAULT_CATEGORIES.to_vec(),
             history: BTreeMap::new(),
             todays_schedule: None,
+            categories_per_day: 4,
         }
     }
 
@@ -107,27 +109,36 @@ impl SchedulePlanner {
     }
 
     /// Returns the categories seen in the last n days of history as a HashSet<&PracticeCategory>
-    /// XXX TODO really we want a Vec<HashSet<&PracticeCategory>> n-items large
-    pub fn get_history_n_days_back(&self, n: usize) -> Result<HashSet<&PracticeCategory>> {
+    pub fn get_history_n_days_back(
+        &self,
+        n: usize,
+    ) -> Result<BTreeMap<Date<Utc>, HashSet<&PracticeCategory>>> {
         let now = Utc::now();
         let n_days_back = now.checked_sub_signed(Duration::days(n.try_into().unwrap()));
         if n_days_back.is_none() {
             return Err(anyhow::anyhow!("Invalid historical search term"));
         }
-        let mut historical_categories = HashSet::new();
+        let mut historical_categories: BTreeMap<Date<Utc>, HashSet<&PracticeCategory>> =
+            BTreeMap::new();
 
-        // iterate each history item and return if within last two days
+        // TODO keys are sorted so we could shorten iteration here
         for (key, value) in self.history.iter() {
+            println!("key: {}", key);
+            // if the history item is within the last n days...
             if key > &n_days_back.unwrap() {
                 for v in value {
-                    historical_categories.insert(v);
+                    // insert into the HashSet for that day
+                    let day_categories = match historical_categories.contains_key(&key.date()) {
+                        true => historical_categories.get_mut(&key.date()).unwrap(),
+                        false => {
+                            let hs = HashSet::new();
+                            historical_categories.insert(key.date(), hs);
+                            historical_categories.get_mut(&key.date()).unwrap()
+                        }
+                    };
+
+                    day_categories.insert(v);
                 }
-            } else {
-                // keys are sorted so we can break early
-                // XXX TODO i think they might be reverse ordered
-                // so this could be a bug
-                println!("breaking early");
-                break;
             }
         }
 
@@ -156,44 +167,46 @@ impl SchedulePlanner {
             return Err(SchedulerError::MissingCategories());
         }
 
-        // no category may go more than 2 days without being practiced.
-        // first construct a list of all categories sorted by date last practiced.
-
-        // if there's not enough history, we can pick any four categories at random for today
         let past_history = self.get_history_n_days_back(self.category_repeat_days)?;
-        println!(
-            "Past {} days history: {:#?}",
-            self.category_repeat_days, past_history
+        let prob_bandwidth: f64 = 100.0 / self.category_repeat_days as f64;
+
+        let mut probabilities: BTreeMap<&PracticeCategory, u64> = BTreeMap::new();
+
+        for category in &self.categories {
+            let mut seen = false;
+            let mut d = 0;
+            for (_day, day_categories) in past_history.iter() {
+                println!("On day: {}", _day);
+                if day_categories.contains(category) {
+                    seen = true;
+                }
+
+                // if we have seen this before, weight the probability by the day seen
+                if seen {
+                    probabilities.insert(category, prob_bandwidth as u64 * d);
+                }
+                d = d + 1;
+            }
+
+            // if any categories do not appear in last n days history at all, set probability to 100%
+            if !seen {
+                probabilities.insert(category, 100);
+                continue;
+            }
+        }
+
+        self.todays_schedule = Some(
+            probabilities
+                .iter()
+                .collect::<Vec<_>>()
+                .choose_multiple_weighted(&mut thread_rng(), self.categories_per_day, |item| {
+                    item.1.to_owned() as f64
+                })
+                .unwrap()
+                .map(|item| item.0.to_owned().to_owned())
+                .collect::<Vec<PracticeCategory>>(),
         );
-
-        if self.days_of_history() <= self.category_repeat_days {
-            self.todays_schedule = Some(
-                self.categories
-                    .choose_multiple(&mut thread_rng(), 4)
-                    .cloned()
-                    .collect(),
-            );
-            return Ok(());
-        }
-
-        let prob_bandwidth: f64 = 100.0 / self.category_repeat_days.into();
-
-        // for each history element
-        // check how many days ago it was from 0..category_repeat_days
-        // set probability to prob_bandwidth * how many days ago it was
-        // check if > 4 categories have maximum priority (100.0), if so,
-        // the category count & category_repeat_days cannot create a satisfactory
-        // solution
-
-        for (key, value) in self.history.iter() {
-            println!("{}: {:#?}", key, value);
-        }
-
-        // https://docs.rs/rand/latest/rand/seq/trait.SliceRandom.html#tymethod.choose_multiple_weighted is probably easiest
-        // then find any categories which are going to go past 2 days if they aren't practiced today.
-        // if there are more than four, raise an error because there are too many categories so something must be adjusted.
-        // otherwise add them to the working set and randomly pick from the 1 day categories to fill the remaining slots.
-        Err(SchedulerError::Other(anyhow::anyhow!("Not implemented")))
+        return Ok(());
     }
 
     pub async fn start_category(&self, category: &PracticeCategory) -> Result<()> {
@@ -272,7 +285,7 @@ impl SchedulePlanner {
         let mut f = File::open("./saved_data/history.bin")?;
         let mut buffer = Vec::new();
         f.read_to_end(&mut buffer)?;
-        let decoded: Self = bincode::deserialize(&buffer[..]).unwrap();
+        let decoded: Self = bincode::deserialize(&buffer[..])?;
 
         Ok(decoded)
     }
@@ -283,7 +296,15 @@ async fn main() {
     let mut scheduler = match Path::new("./saved_data/history.bin").exists() {
         true => {
             println!("Saved data found, loading...");
-            SchedulePlanner::new_from_disk().unwrap()
+            match SchedulePlanner::new_from_disk() {
+                Ok(sp) => sp,
+                Err(_e) => {
+                    // TODO the import/export mechanism is extremely fragile
+                    // if the data structure is changed
+                    println!("Error loading history file");
+                    SchedulePlanner::new()
+                }
+            }
         }
         false => SchedulePlanner::new(),
     };
@@ -296,7 +317,7 @@ async fn main() {
     println!("Want to practice? ");
     let line: String = read!("{}\n");
     match line.to_lowercase().as_str() {
-        "y\r" | "y\n" => {
+        "y\r" | "y\n" | "y" => {
             println!("Yeehaw");
             scheduler
                 .start_daily_practice()
@@ -305,6 +326,7 @@ async fn main() {
         }
         _ => {
             println!("Well, okay then.");
+            println!("{}", line);
         }
     };
 }
