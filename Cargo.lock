@@ -306,13 +306,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ppv-lite86"
-version = "0.2.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed0cfbc8191465bed66e1718596ee0b0b35d5ee1f41c5df2189d0fe8bde535ba"
-
-[[package]]
-name = "practice_planner"
+name = "ppcli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -331,6 +325,33 @@ dependencies = [
  "web-sys",
  "yew",
 ]
+
+[[package]]
+name = "pplib"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "chrono",
+ "getrandom",
+ "gloo",
+ "lazy_static",
+ "log",
+ "rand",
+ "serde",
+ "serde_with",
+ "text_io",
+ "thiserror",
+ "wasm-logger",
+ "web-sys",
+ "yew",
+]
+
+[[package]]
+name = "ppv-lite86"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed0cfbc8191465bed66e1718596ee0b0b35d5ee1f41c5df2189d0fe8bde535ba"
 
 [[package]]
 name = "proc-macro-error"
@@ -651,6 +672,27 @@ checksum = "38eb105f1c59d9eaa6b5cdc92b859d85b926e82cb2e0945cd0c9259faa6fe9fb"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "webapp"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "chrono",
+ "getrandom",
+ "gloo",
+ "lazy_static",
+ "log",
+ "rand",
+ "serde",
+ "serde_with",
+ "text_io",
+ "thiserror",
+ "wasm-logger",
+ "web-sys",
+ "yew",
 ]
 
 [[package]]

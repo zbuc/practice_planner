@@ -353,20 +353,19 @@ impl Component for SchedulePlanner {
 
         let mut scheduler = match Path::new("./saved_data/history.bin").exists() {
             true => {
-                println!("Saved data found, loading...");
+                log::info!("Saved data found, loading...");
                 match SchedulePlanner::new_from_disk() {
                     Ok(sp) => sp,
                     Err(_e) => {
                         // TODO the import/export mechanism is extremely fragile
                         // if the data structure is changed
-                        println!("Error loading history file");
+                        log::info!("Error loading history file");
                         SchedulePlanner::new()
                     }
                 }
             }
             false => SchedulePlanner::new(),
         };
-        log::info!("Hello yew");
         scheduler
     }
 
