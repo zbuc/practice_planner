@@ -299,6 +299,26 @@ impl SchedulePlanner {
 
         Ok(decoded)
     }
+
+    fn view_input(&self, link: &Scope<Self>) -> Html {
+        let onkeypress = link.batch_callback(|e: KeyboardEvent| {
+            if e.key() == "Enter" {
+                let input: InputElement = e.target_unchecked_into();
+                let value = input.value();
+                input.set_value("");
+                Some(Msg::Add(value))
+            } else {
+                None
+            }
+        });
+        html! {
+            <input
+                class="new-todo"
+                placeholder="What needs to be done?"
+                {onkeypress}
+            />
+        }
+    }
 }
 
 pub enum Msg {
@@ -317,7 +337,7 @@ pub struct Model {
     focus_ref: NodeRef,
 }
 
-impl Component for Model {
+impl Component for SchedulePlanner {
     type Message = Msg;
     type Properties = ();
 
@@ -330,7 +350,23 @@ impl Component for Model {
         // };
         let focus_ref = NodeRef::default();
         // Self { state, focus_ref }
-        Self { focus_ref }
+
+        let mut scheduler = match Path::new("./saved_data/history.bin").exists() {
+            true => {
+                println!("Saved data found, loading...");
+                match SchedulePlanner::new_from_disk() {
+                    Ok(sp) => sp,
+                    Err(_e) => {
+                        // TODO the import/export mechanism is extremely fragile
+                        // if the data structure is changed
+                        println!("Error loading history file");
+                        SchedulePlanner::new()
+                    }
+                }
+            }
+            false => SchedulePlanner::new(),
+        };
+        scheduler
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -430,110 +466,8 @@ impl Component for Model {
     }
 }
 
-impl Model {
-    // fn view_filter(&self, filter: Filter, link: &Scope<Self>) -> Html {
-    //     let cls = if self.state.filter == filter {
-    //         "selected"
-    //     } else {
-    //         "not-selected"
-    //     };
-    //     html! {
-    //         <li>
-    //             <a class={cls}
-    //                href={filter.as_href()}
-    //                onclick={link.callback(move |_| Msg::SetFilter(filter))}
-    //             >
-    //                 { filter }
-    //             </a>
-    //         </li>
-    //     }
-    // }
-
-    fn view_input(&self, link: &Scope<Self>) -> Html {
-        let onkeypress = link.batch_callback(|e: KeyboardEvent| {
-            if e.key() == "Enter" {
-                let input: InputElement = e.target_unchecked_into();
-                let value = input.value();
-                input.set_value("");
-                Some(Msg::Add(value))
-            } else {
-                None
-            }
-        });
-        html! {
-            // You can use standard Rust comments. One line:
-            // <li></li>
-            <input
-                class="new-todo"
-                placeholder="What needs to be done?"
-                {onkeypress}
-            />
-            /* Or multiline:
-            <ul>
-                <li></li>
-            </ul>
-            */
-        }
-    }
-
-    // fn view_entry(&self, (idx, entry): (usize, &Entry), link: &Scope<Self>) -> Html {
-    //     let mut class = Classes::from("todo");
-    //     if entry.editing {
-    //         class.push(" editing");
-    //     }
-    //     if entry.completed {
-    //         class.push(" completed");
-    //     }
-    //     html! {
-    //         <li {class}>
-    //             <div class="view">
-    //                 <input
-    //                     type="checkbox"
-    //                     class="toggle"
-    //                     checked={entry.completed}
-    //                     onclick={link.callback(move |_| Msg::Toggle(idx))}
-    //                 />
-    //                 <label ondblclick={link.callback(move |_| Msg::ToggleEdit(idx))}>{ &entry.description }</label>
-    //                 <button class="destroy" onclick={link.callback(move |_| Msg::Remove(idx))} />
-    //             </div>
-    //             { self.view_entry_edit_input((idx, entry), link) }
-    //         </li>
-    //     }
-    // }
-
-    // fn view_entry_edit_input(&self, (idx, entry): (usize, &Entry), link: &Scope<Self>) -> Html {
-    //     let edit = move |input: InputElement| {
-    //         let value = input.value();
-    //         input.set_value("");
-    //         Msg::Edit((idx, value))
-    //     };
-
-    //     let onblur = link.callback(move |e: FocusEvent| edit(e.target_unchecked_into()));
-
-    //     let onkeypress = link.batch_callback(move |e: KeyboardEvent| {
-    //         (e.key() == "Enter").then(|| edit(e.target_unchecked_into()))
-    //     });
-
-    //     if entry.editing {
-    //         html! {
-    //             <input
-    //                 class="edit"
-    //                 type="text"
-    //                 ref={self.focus_ref.clone()}
-    //                 value={self.state.edit_value.clone()}
-    //                 onmouseover={link.callback(|_| Msg::Focus)}
-    //                 {onblur}
-    //                 {onkeypress}
-    //             />
-    //         }
-    //     } else {
-    //         html! { <input type="hidden" /> }
-    //     }
-    // }
-}
-
 fn main() {
-    yew::start_app::<Model>();
+    yew::start_app::<SchedulePlanner>();
 
     let mut scheduler = match Path::new("./saved_data/history.bin").exists() {
         true => {
