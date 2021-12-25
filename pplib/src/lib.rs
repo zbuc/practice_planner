@@ -125,7 +125,7 @@ impl SchedulePlanner {
 
         // TODO keys are sorted so we could shorten iteration here
         for (key, value) in self.history.iter() {
-            println!("key: {}", key);
+            log::info!("key: {}", key);
             // if the history item is within the last n days...
             if key > &n_days_back.unwrap() {
                 for v in value {
@@ -178,7 +178,7 @@ impl SchedulePlanner {
             let mut seen = false;
             let mut d = 0;
             for (_day, day_categories) in past_history.iter() {
-                println!("On day: {}", _day);
+                log::info!("On day: {}", _day);
                 if day_categories.contains(category) {
                     seen = true;
                 }
@@ -212,14 +212,26 @@ impl SchedulePlanner {
     }
 
     pub fn start_category(&self, category: &PracticeCategory) -> Result<()> {
-        println!(
+        log::info!(
             "Starting {} minute practice for category: {:#?}",
             self.category_practice_time.num_minutes(),
             category
         );
 
-        thread::sleep(self.category_practice_time.to_std()?);
-        println!("Done practicing category: {:#?}", category);
+        // TODO can't sleep in yew context. need to handle differently for CLI vs
+        // webapp
+        // cli:
+        // thread::sleep(self.category_practice_time.to_std()?);
+        //
+        // webapp:
+        // let handle = TimeoutService::spawn(
+        //     Duration::from_secs(3),
+        //     self.link.callback(|_| Msg::Done),
+        // );
+        // // Keep the task or timer will be cancelled
+        // self.timeout_job = Some(handle);
+
+        log::info!("Done practicing category: {:#?}", category);
         // self.play_ding_sound();
 
         Ok(())
@@ -237,8 +249,8 @@ impl SchedulePlanner {
         // stream_handle.play_raw(source.convert_samples())?;
 
         // need to sleep for the duration of the ding sound
-        // (todo should probably move to a second thread/task/whatever in tokio)
-        thread::sleep(std::time::Duration::from_secs(2));
+        // TODO can't sleep in yew app
+        // thread::sleep(std::time::Duration::from_secs(2));
         Ok(())
     }
 
@@ -246,10 +258,10 @@ impl SchedulePlanner {
         // ensure today's schedule has been set
         self.update_todays_schedule(false)?;
         for category in self.todays_schedule.as_ref().unwrap().iter() {
-            println!("Starting practice for category: {:#?}", category);
+            log::info!("Starting practice for category: {:#?}", category);
             self.start_category(&category)?;
         }
-        println!("Finished practicing for today!");
+        log::info!("Finished practicing for today!");
 
         // record this practice session in history, save to disk
         self.mark_todays_practice_completed()?;

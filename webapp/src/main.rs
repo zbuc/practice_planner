@@ -35,6 +35,7 @@ pub enum Msg {
     Toggle(usize),
     ClearCompleted,
     Focus,
+    BeginPractice,
 }
 
 pub struct PracticePlannerApp {
@@ -140,6 +141,11 @@ impl Component for PracticePlannerApp {
                 // self.state.clear_all_edit();
                 // self.state.toggle_edit(idx);
             }
+            Msg::BeginPractice => {
+                self.scheduler.start_daily_practice();
+                // let status = !self.state.is_all_completed();
+                // self.state.toggle_all(status);
+            }
             Msg::ToggleAll => {
                 // let status = !self.state.is_all_completed();
                 // self.state.toggle_all(status);
@@ -171,7 +177,7 @@ impl Component for PracticePlannerApp {
             <div class="todomvc-wrapper">
                 <section class="todoapp">
                     <header class="header">
-                        <h1>{ "todos" }</h1>
+                        <h1>{ "Guitar Metis" }</h1>
                         // { self.view_input(ctx.link()) }
                     </header>
                     <section class={classes!("main")}>
@@ -183,6 +189,7 @@ impl Component for PracticePlannerApp {
                             onclick={ctx.link().callback(|_| Msg::ToggleAll)}
                         />
                         <label for="toggle-all" />
+                        <h2 class="todo-list">{ "Today's Schedule" }</h2>
                         <ul class="todo-list">
                         {
                             if self.scheduler.get_todays_schedule().is_some() {
@@ -194,6 +201,12 @@ impl Component for PracticePlannerApp {
                         }
                             // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
                         </ul>
+                        <button class="favorite styled"
+                                type="button"
+                                onclick={ctx.link().callback(|_| Msg::BeginPractice)}
+                                >
+                            { "Begin Practice" }
+                        </button>
                     </section>
                     <footer class={classes!("footer", hidden_class)}>
                         <span class="todo-count">
@@ -209,9 +222,7 @@ impl Component for PracticePlannerApp {
                     </footer>
                 </section>
                 <footer class="info">
-                    <p>{ "Double-click to edit a todo" }</p>
-                    <p>{ "Written by " }<a href="https://github.com/DenisKolodin/" target="_blank">{ "Denis Kolodin" }</a></p>
-                    <p>{ "Part of " }<a href="http://todomvc.com/" target="_blank">{ "TodoMVC" }</a></p>
+                    <p>{ "Some text goes here. Lorem ipsum dolor sit amet and so on." }</p>
                 </footer>
             </div>
         }
