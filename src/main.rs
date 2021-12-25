@@ -6,13 +6,13 @@ use std::collections::BTreeMap;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::BufReader;
 use std::path::Path;
-use std::{thread, time};
+use std::thread;
 
 use anyhow::Result;
 use chrono::{Date, DateTime, Duration, Utc};
 use gloo::storage::{LocalStorage, Storage};
+use log;
 use rand::prelude::*;
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
@@ -56,7 +56,7 @@ lazy_static! {
     ];
 }
 
-const KEY: &str = "yew.todomvc.self";
+const KEY: &str = "yew.practiceplanner.self";
 
 #[derive(Error, Debug)]
 pub enum SchedulerError {
@@ -366,6 +366,7 @@ impl Component for SchedulePlanner {
             }
             false => SchedulePlanner::new(),
         };
+        log::info!("Hello yew");
         scheduler
     }
 
@@ -467,6 +468,8 @@ impl Component for SchedulePlanner {
 }
 
 fn main() {
+    wasm_logger::init(wasm_logger::Config::default());
+
     yew::start_app::<SchedulePlanner>();
 
     let mut scheduler = match Path::new("./saved_data/history.bin").exists() {
