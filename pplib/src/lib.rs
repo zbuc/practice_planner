@@ -106,6 +106,7 @@ impl SchedulePlanner {
     }
 
     pub fn get_todays_schedule(&self) -> Option<&Vec<PracticeCategory>> {
+        log::info!("get_todays_schedule");
         self.todays_schedule.as_ref()
     }
 
@@ -291,24 +292,4 @@ impl SchedulePlanner {
 
         Ok(decoded)
     }
-
-    // fn view_input(&self, link: &Scope<Self>) -> Html {
-    //     let onkeypress = link.batch_callback(|e: KeyboardEvent| {
-    //         if e.key() == "Enter" {
-    //             let input: InputElement = e.target_unchecked_into();
-    //             let value = input.value();
-    //             input.set_value("");
-    //             Some(Msg::Add(value))
-    //         } else {
-    //             None
-    //         }
-    //     });
-    //     html! {
-    //         <input
-    //             class="new-todo"
-    //             placeholder="What needs to be done?"
-    //             {onkeypress}
-    //         />
-    //     }
-    // }
 }

@@ -43,6 +43,38 @@ pub struct PracticePlannerApp {
     scheduler: SchedulePlanner,
 }
 
+impl PracticePlannerApp {
+    fn view_category(
+        &self,
+        (idx, category): (usize, &PracticeCategory),
+        link: &Scope<Self>,
+    ) -> Html {
+        let mut class = Classes::from("todo");
+        // if entry.editing {
+        //     class.push(" editing");
+        // }
+        // if entry.completed {
+        //     class.push(" completed");
+        // }
+        log::info!("making the thing");
+        html! {
+            <li {class}>
+                <div class="view">
+                    <input
+                        type="checkbox"
+                        class="toggle"
+                        // checked={entry.completed}
+                        onclick={link.callback(move |_| Msg::Toggle(idx))}
+                    />
+                    <label ondblclick={link.callback(move |_| Msg::ToggleEdit(idx))}>{ &category.category_name}</label>
+                    <button class="destroy" onclick={link.callback(move |_| Msg::Remove(idx))} />
+                </div>
+                // { self.view_entry_edit_input((idx, category), link) }
+            </li>
+        }
+    }
+}
+
 impl Component for PracticePlannerApp {
     type Message = Msg;
     type Properties = ();
@@ -57,6 +89,7 @@ impl Component for PracticePlannerApp {
         let focus_ref = NodeRef::default();
         // Self { state, focus_ref }
 
+        // TODO webapp should use LocalStorage for storage
         let mut scheduler = match Path::new("./saved_data/history.bin").exists() {
             true => {
                 log::info!("Saved data found, loading...");
@@ -72,6 +105,11 @@ impl Component for PracticePlannerApp {
             }
             false => SchedulePlanner::new(),
         };
+
+        scheduler
+            .update_todays_schedule(false)
+            .expect("Unable to update today's schedule");
+        // let todays_schedule = scheduler.get_todays_schedule();
         Self { scheduler }
     }
 
@@ -136,7 +174,7 @@ impl Component for PracticePlannerApp {
                         <h1>{ "todos" }</h1>
                         // { self.view_input(ctx.link()) }
                     </header>
-                    <section class={classes!("main", hidden_class)}>
+                    <section class={classes!("main")}>
                         <input
                             type="checkbox"
                             class="toggle-all"
@@ -146,6 +184,14 @@ impl Component for PracticePlannerApp {
                         />
                         <label for="toggle-all" />
                         <ul class="todo-list">
+                        {
+                            if self.scheduler.get_todays_schedule().is_some() {
+                                log::info!("hgey");
+                                html! { for self.scheduler.get_todays_schedule().unwrap().iter().enumerate().map(|e| self.view_category(e, ctx.link())) }
+                            } else {
+                                html! {}
+                            }
+                        }
                             // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
                         </ul>
                     </section>
@@ -177,41 +223,21 @@ fn main() {
 
     yew::start_app::<PracticePlannerApp>();
 
-    let mut scheduler = match Path::new("./saved_data/history.bin").exists() {
-        true => {
-            println!("Saved data found, loading...");
-            match SchedulePlanner::new_from_disk() {
-                Ok(sp) => sp,
-                Err(_e) => {
-                    // TODO the import/export mechanism is extremely fragile
-                    // if the data structure is changed
-                    println!("Error loading history file");
-                    SchedulePlanner::new()
-                }
-            }
-        }
-        false => SchedulePlanner::new(),
-    };
-
-    scheduler
-        .update_todays_schedule(false)
-        .expect("Unable to update today's schedule");
-    let todays_schedule = scheduler.get_todays_schedule();
-    println!("Today's schedule: {:#?}", todays_schedule);
-    println!("Want to practice? ");
-    let line: String = read!("{}\n");
-    match line.to_lowercase().as_str() {
-        "y\r" | "y\n" | "y" => {
-            println!("Yeehaw");
-            scheduler
-                .start_daily_practice()
-                .expect("Unable to run daily practice");
-        }
-        _ => {
-            println!("Well, okay then.");
-            println!("{}", line);
-        }
-    };
+    // println!("Today's schedule: {:#?}", todays_schedule);
+    // println!("Want to practice? ");
+    // let line: String = read!("{}\n");
+    // match line.to_lowercase().as_str() {
+    //     "y\r" | "y\n" | "y" => {
+    //         println!("Yeehaw");
+    //         scheduler
+    //             .start_daily_practice()
+    //             .expect("Unable to run daily practice");
+    //     }
+    //     _ => {
+    //         println!("Well, okay then.");
+    //         println!("{}", line);
+    //     }
+    // };
 }
 
 pub fn get_todays_schedule() -> Result<Vec<PracticeCategory>> {
