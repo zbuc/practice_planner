@@ -7,17 +7,13 @@ use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::Path;
-use std::thread;
 
 use anyhow::Result;
 use chrono::{Date, DateTime, Duration, Utc};
-use gloo::storage::{LocalStorage, Storage};
 use log;
 use rand::prelude::*;
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
-use text_io::read;
 use thiserror::Error;
 
 lazy_static! {

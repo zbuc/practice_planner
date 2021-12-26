@@ -2,31 +2,14 @@
 use std;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
-use std::fs::File;
-use std::io::prelude::*;
-use std::path::Path;
-use std::thread;
 
 use anyhow::Result;
-use chrono::{Date, DateTime, Duration, Utc};
+use chrono::{Date, Utc};
 use gloo::storage::{LocalStorage, Storage};
 use log;
-use rand::prelude::*;
-use rand::seq::SliceRandom;
-use serde::{Deserialize, Serialize};
-use text_io::read;
-use thiserror::Error;
-use web_sys::HtmlInputElement as InputElement;
-use yew::scheduler;
-use yew::{
-    classes,
-    events::{FocusEvent, KeyboardEvent},
-    html,
-    html::Scope,
-    Classes, Component, Context, Html, NodeRef, TargetCast,
-};
+use yew::{classes, html, html::Scope, Classes, Component, Context, Html};
 
-use pplib::{PracticeCategory, PracticeSkill, SchedulePlanner};
+use pplib::{PracticeCategory, SchedulePlanner};
 
 // Use `wee_alloc` as the global allocator.
 #[global_allocator]
@@ -59,7 +42,7 @@ impl PracticePlannerApp {
         (idx, category): (usize, &PracticeCategory),
         link: &Scope<Self>,
     ) -> Html {
-        let mut class = Classes::from("todo");
+        let class = Classes::from("todo");
         // if entry.editing {
         //     class.push(" editing");
         // }
@@ -87,9 +70,9 @@ impl PracticePlannerApp {
     fn view_history_list(
         &self,
         history_list: BTreeMap<Date<Utc>, HashSet<&PracticeCategory>>,
-        link: &Scope<Self>,
+        _link: &Scope<Self>,
     ) -> Html {
-        let mut class = Classes::from("todo");
+        let _class = Classes::from("todo");
         // if entry.editing {
         //     class.push(" editing");
         // }
@@ -123,10 +106,10 @@ impl PracticePlannerApp {
 
     fn view_category_list(
         &self,
-        category_list: &Vec<PracticeCategory>,
+        _category_list: &Vec<PracticeCategory>,
         link: &Scope<Self>,
     ) -> Html {
-        let mut class = Classes::from("todo");
+        let _class = Classes::from("todo");
         // if entry.editing {
         //     class.push(" editing");
         // }
@@ -181,17 +164,17 @@ impl Component for PracticePlannerApp {
                     // self.state.entries.push(entry);
                 }
             }
-            Msg::Edit((idx, edit_value)) => {
+            Msg::Edit((_idx, _edit_value)) => {
                 // self.state.complete_edit(idx, edit_value.trim().to_string());
                 // self.state.edit_value = "".to_string();
             }
-            Msg::Remove(idx) => {
+            Msg::Remove(_idx) => {
                 // self.state.remove(idx);
             }
             // Msg::SetFilter(filter) => {
             //     self.state.filter = filter;
             // }
-            Msg::ToggleEdit(idx) => {
+            Msg::ToggleEdit(_idx) => {
                 // self.state.edit_value = self.state.entries[idx].description.clone();
                 // self.state.clear_all_edit();
                 // self.state.toggle_edit(idx);
@@ -219,7 +202,7 @@ impl Component for PracticePlannerApp {
                 // let status = !self.state.is_all_completed();
                 // self.state.toggle_all(status);
             }
-            Msg::Toggle(idx) => {
+            Msg::Toggle(_idx) => {
                 // self.state.toggle(idx);
             }
             Msg::ClearCompleted => {
