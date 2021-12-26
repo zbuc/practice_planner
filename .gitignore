@@ -7,3 +7,4 @@ Cargo.lock
 .idea
 **/*.rs.bk
 *.pdb
+node_modules/
