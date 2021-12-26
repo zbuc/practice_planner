@@ -111,6 +111,7 @@ pub struct PracticeSession<'a> {
     pub completed: HashMap<&'a PracticeCategory, bool>,
     pub time_left: Duration,
     pub start_time: DateTime<Utc>,
+    pub category_start_time: DateTime<Utc>,
 }
 
 impl<'a> PracticeSession<'a> {
@@ -127,7 +128,8 @@ impl SchedulePlanner<'_> {
             //category_practice_time: Duration::minutes(15),
             config: PlannerConfiguration {
                 categories_per_day: 4,
-                category_practice_time: Duration::minutes(15),
+                // category_practice_time: Duration::minutes(15),
+                category_practice_time: Duration::seconds(5),
                 category_repeat_days: 2,
                 categories: DEFAULT_CATEGORIES.to_vec(),
             },
@@ -246,6 +248,26 @@ impl SchedulePlanner<'_> {
         return Ok(());
     }
 
+    pub fn advance_practice_session(&mut self) -> Result<()> {
+        log::info!("Advancing to next category...");
+        if self.practice_session.is_none() {
+            return Err(anyhow::anyhow!("Expected practice session"));
+        }
+        if self.practice_session.as_ref().unwrap().current_category as usize
+            == self.practice_session.as_ref().unwrap().schedule.len() - 1
+        {
+            // practice session is complete
+            return self.mark_todays_practice_completed();
+        }
+
+        // advance to the next category
+        self.practice_session.as_mut().unwrap().current_category =
+            self.practice_session.as_mut().unwrap().current_category + 1;
+        self.practice_session.as_mut().unwrap().category_start_time = chrono::Utc::now();
+        // self.practice_session.unwrap().category_start_time = now;
+        Ok(())
+    }
+
     pub fn start_category(&self, category: &PracticeCategory) -> Result<()> {
         log::info!(
             "Starting {} minute practice for category: {:#?}",
@@ -311,6 +333,7 @@ impl SchedulePlanner<'_> {
             time_left: Duration::seconds(0),
             // TODO maybe make an Option type
             start_time: chrono::Utc::now(),
+            category_start_time: chrono::Utc::now(),
         });
         for category in self.todays_schedule.as_ref().unwrap().iter() {
             log::info!("Starting practice for category: {:#?}", category);

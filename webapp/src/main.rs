@@ -120,7 +120,6 @@ impl PracticePlannerApp {
 
     fn view_category_list(
         &self,
-        _category_list: &Vec<PracticeCategory>,
         practice_session: &Option<PracticeSession>,
         link: &Scope<Self>,
     ) -> Html {
@@ -249,9 +248,19 @@ impl Component for PracticePlannerApp {
                 log::info!("Tick");
 
                 let now = chrono::Utc::now();
-                let time_elapsed =
-                    now.sub(self.scheduler.practice_session.as_ref().unwrap().start_time);
+                let time_elapsed = now.sub(
+                    self.scheduler
+                        .practice_session
+                        .as_ref()
+                        .unwrap()
+                        .category_start_time,
+                );
                 let total_time = self.scheduler.config.category_practice_time;
+
+                if time_elapsed > total_time {
+                    // move to next category
+                    self.scheduler.advance_practice_session();
+                }
                 log::info!("Config: {:#?}", self.scheduler.config);
                 log::info!("Total time: {}", total_time.num_minutes());
                 log::info!("Time elapsed: {}", time_elapsed);
@@ -275,6 +284,11 @@ impl Component for PracticePlannerApp {
                     .start_daily_practice()
                     .expect("failed daily practice");
                 self.scheduler.practice_session.as_mut().unwrap().start_time = chrono::Utc::now();
+                self.scheduler
+                    .practice_session
+                    .as_mut()
+                    .unwrap()
+                    .category_start_time = chrono::Utc::now();
                 self.scheduler.practice_session.as_mut().unwrap().time_left =
                     self.scheduler.config.category_practice_time;
                 let handle = {
@@ -319,10 +333,7 @@ impl Component for PracticePlannerApp {
             log::info!("currently practicing");
         }
         let practicing = self.scheduler.practicing;
-        let category_list = self
-            .scheduler
-            .get_todays_schedule()
-            .expect("unable to retrieve today's schedule");
+        let category_list = self.scheduler.get_todays_schedule();
         // TODO use a constant here
         let history_list = self
             .scheduler
@@ -350,7 +361,7 @@ impl Component for PracticePlannerApp {
                         />
                         <label for="toggle-all" />
                         <h2 class="category-list">{ "Today's Schedule" }</h2>
-                        {self.view_category_list(category_list, &self.scheduler.practice_session, ctx.link())}
+                        {self.view_category_list(&self.scheduler.practice_session, ctx.link())}
                             // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
                         { if practicing {
                             html!{
