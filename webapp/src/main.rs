@@ -4,10 +4,15 @@ use std::collections::BTreeMap;
 use std::collections::HashSet;
 
 use anyhow::Result;
-use chrono::Local;
 use chrono::{Date, Utc};
 use gloo::storage::{LocalStorage, Storage};
+use gloo::{
+    console::{self, Timer},
+    timers::callback::{Interval, Timeout},
+};
 use log;
+use patternfly_yew::*;
+use pplib::PracticeSession;
 use yew::{classes, html, html::Scope, Classes, Component, Context, Html};
 
 use pplib::{PracticeCategory, SchedulePlanner};
@@ -30,6 +35,8 @@ pub enum Msg {
     Focus,
     StartPracticing,
     StopPracticing,
+    PracticeTick,
+    ResetDataPrompt,
     ResetData,
 }
 
@@ -37,15 +44,21 @@ pub struct PracticePlannerApp {
     // state: State,
     // focus_ref: NodeRef,
     scheduler: SchedulePlanner<'static>,
+    interval: Option<Interval>,
 }
 
 impl PracticePlannerApp {
     fn view_category(
         &self,
         (idx, category): (usize, &PracticeCategory),
+        active: u64,
+        practicing: bool,
         link: &Scope<Self>,
     ) -> Html {
-        let class = Classes::from("todo");
+        let mut class = Classes::from("todo");
+        if practicing && active as usize == idx {
+            class.push("active-category");
+        }
         log::info!("making the category item");
         html! {
             <li {class}>
@@ -105,6 +118,7 @@ impl PracticePlannerApp {
     fn view_category_list(
         &self,
         _category_list: &Vec<PracticeCategory>,
+        practice_session: &Option<PracticeSession>,
         link: &Scope<Self>,
     ) -> Html {
         let _class = Classes::from("todo");
@@ -115,6 +129,11 @@ impl PracticePlannerApp {
         //     class.push(" completed");
         // }
         log::info!("making the category list");
+        let active = match practice_session {
+            Some(ps) => ps.current_category,
+            None => 0,
+        };
+        let practicing = self.scheduler.practicing;
 
         html! {
             <>
@@ -122,7 +141,7 @@ impl PracticePlannerApp {
             {
                 if self.scheduler.get_todays_schedule().is_some() {
                     log::info!("got a schedule for today");
-                    html! { for self.scheduler.get_todays_schedule().unwrap().iter().enumerate().map(|e| self.view_category(e, link)) }
+                    html! { for self.scheduler.get_todays_schedule().unwrap().iter().enumerate().map(|e| self.view_category(e, active, practicing, link)) }
                 } else {
                     log::info!("no schedule available :(");
                     html! {}
@@ -155,10 +174,13 @@ impl Component for PracticePlannerApp {
         scheduler
             .update_todays_schedule(false)
             .expect("Unable to update today's schedule");
-        Self { scheduler }
+        Self {
+            scheduler,
+            interval: None,
+        }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Add(description) => {
                 if !description.is_empty() {
@@ -185,6 +207,24 @@ impl Component for PracticePlannerApp {
                 // self.state.clear_all_edit();
                 // self.state.toggle_edit(idx);
             }
+            Msg::ResetDataPrompt => {
+                // TODO this would be better as a modal probably but there's
+                // no easy way to trigger those in patternfly-yew
+                let fix = ctx
+                    .link()
+                    .callback(|_| Msg::ResetData)
+                    .into_action("Reset Data");
+                let toast = Toast {
+                    title: "Are you sure?".into(),
+                    r#type: Type::Danger,
+                    body: html! {
+                        <p>{"Are you sure you'd like to reset all your configuration and history?"}</p>
+                    },
+                    actions: vec![fix.clone()],
+                    ..Default::default()
+                };
+                ToastDispatcher::new().toast(toast);
+            }
             Msg::ResetData => {
                 self.scheduler = SchedulePlanner::new();
                 self.scheduler
@@ -202,10 +242,21 @@ impl Component for PracticePlannerApp {
                     .stop_practicing()
                     .expect("failed to stop practicing");
             }
+            Msg::PracticeTick => {
+                log::info!("Tick");
+            }
             Msg::StartPracticing => {
                 self.scheduler
                     .start_daily_practice()
                     .expect("failed daily practice");
+                let handle = {
+                    let link = ctx.link().clone();
+                    Interval::new(1000, move || link.send_message(Msg::PracticeTick))
+                };
+                self.interval = Some(handle);
+
+                // console::clear!();
+
                 // let status = !self.state.is_all_completed();
                 // self.state.toggle_all(status);
             }
@@ -250,10 +301,13 @@ impl Component for PracticePlannerApp {
             .get_history_n_days_back(3)
             .expect("unable to retrieve history");
         html! {
+            <>
+            // TODO should be Grid https://ctron.github.io/layout/grid
+            <ToastViewer/>
             <div class="todomvc-wrapper">
                 <section class="todoapp">
                     <header class="header">
-                        <h1>{ "Guitar Metis" }</h1>
+                        <h1>{ "Planner" }</h1>
                         // { self.view_input(ctx.link()) }
                     </header>
                     <section class={classes!("main")}>
@@ -268,16 +322,19 @@ impl Component for PracticePlannerApp {
                         />
                         <label for="toggle-all" />
                         <h2 class="category-list">{ "Today's Schedule" }</h2>
-                        {self.view_category_list(category_list, ctx.link())}
+                        {self.view_category_list(category_list, &self.scheduler.practice_session, ctx.link())}
                             // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
                         { if practicing {
                             html!{
+                                <>
+                                <h3>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left }</h3>
                                 <button class="favorite styled"
                                         type="button"
                                         onclick={ctx.link().callback(|_| Msg::StopPracticing)}
                                         >
                                         {"Stop Practicing"}
                                 </button>
+                                </>
                              }
                         } else {
                             html!{
@@ -291,7 +348,7 @@ impl Component for PracticePlannerApp {
                         }}
                         <button class="favorite styled"
                                 type="button"
-                                onclick={ctx.link().callback(|_| Msg::ResetData)}
+                                onclick={ctx.link().callback(|_| Msg::ResetDataPrompt)}
                                 >
                             { "Reset History" }
                         </button>
@@ -313,6 +370,7 @@ impl Component for PracticePlannerApp {
                     <p>{ "Some text goes here. Lorem ipsum dolor sit amet and so on." }</p>
                 </footer>
             </div>
+            </>
         }
     }
 }

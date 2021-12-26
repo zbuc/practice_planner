@@ -103,9 +103,13 @@ pub struct SchedulePlanner<'a> {
 
 #[derive(Debug)]
 pub struct PracticeSession<'a> {
-    schedule: &'a Vec<PracticeCategory>,
-    current_category: &'a PracticeCategory,
-    completed: HashMap<&'a PracticeCategory, bool>,
+    // TODO these could be references to the state on SchedulePlanner
+    // but the lifetimes got annoying and I gave up and there is some
+    // duplicated data
+    pub schedule: Vec<PracticeCategory>,
+    pub current_category: u64,
+    pub completed: HashMap<&'a PracticeCategory, bool>,
+    pub time_left: u64,
 }
 
 impl SchedulePlanner<'_> {
@@ -288,10 +292,17 @@ impl SchedulePlanner<'_> {
         Ok(())
     }
 
-    pub fn start_daily_practice(&mut self) -> Result<()> {
+    pub fn start_daily_practice<'a>(&'a mut self) -> Result<()> {
         self.practicing = true;
         // ensure today's schedule has been set
         self.update_todays_schedule(false)?;
+        let schedule = self.todays_schedule.as_ref().unwrap().clone();
+        self.practice_session = Some(PracticeSession {
+            schedule: schedule,
+            current_category: 0,
+            completed: HashMap::new(),
+            time_left: 0,
+        });
         for category in self.todays_schedule.as_ref().unwrap().iter() {
             log::info!("Starting practice for category: {:#?}", category);
             self.start_category(&category)?;
