@@ -193,9 +193,10 @@ impl Component for PracticePlannerApp {
             }
         };
 
-        // scheduler
-        //     .update_todays_schedule(false, current_time)
-        //     .expect("Unable to update today's schedule");
+        let current_time = Utc::now();
+        scheduler
+            .update_todays_schedule(false, current_time)
+            .expect("Unable to update today's schedule");
         Self {
             scheduler,
             interval: None,
@@ -368,9 +369,10 @@ impl Component for PracticePlannerApp {
         if self.scheduler.practicing {
             log::info!("currently practicing");
         }
+
+        let current_time = Utc::now();
         let practicing = self.scheduler.practicing;
         let category_list = self.scheduler.get_todays_schedule();
-        let current_time = Utc::now();
         // TODO use a constant here
         let history_list = self
             .scheduler
@@ -378,15 +380,14 @@ impl Component for PracticePlannerApp {
             .expect("unable to retrieve history");
         html! {
             <>
-            // TODO should be Grid https://ctron.github.io/layout/grid
             <ToastViewer/>
-            <div class="todomvc-wrapper">
-                <section class="todoapp">
-                    <header class="header">
-                        <h1>{ "Planner" }</h1>
-                        // { self.view_input(ctx.link()) }
-                    </header>
-                    <section class={classes!("main")}>
+            <Bullseye>
+                <header class="header">
+                    <h1>{ "Planner" }</h1>
+                    // { self.view_input(ctx.link()) }
+                </header>
+                <Grid gutter=true>
+                    <GridItem cols={[6]}>
                         <h2 class="history-list">{ "Practice History" }</h2>
                         {self.view_history_list(history_list, ctx.link())}
                         <input
@@ -396,7 +397,14 @@ impl Component for PracticePlannerApp {
                             // checked={self.state.is_all_completed()}
                             onclick={ctx.link().callback(|_| Msg::ToggleAll)}
                         />
-                        <label for="toggle-all" />
+                        <button class="favorite styled"
+                                type="button"
+                                onclick={ctx.link().callback(|_| Msg::ResetDataPrompt)}
+                                >
+                            { "Reset History" }
+                        </button>
+                    </GridItem>
+                    <GridItem cols={[6]}>
                         <h2 class="category-list">{ "Today's Schedule" }</h2>
                         {self.view_category_list(&self.scheduler.practice_session, ctx.link())}
                             // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
@@ -411,7 +419,7 @@ impl Component for PracticePlannerApp {
                                         {"Stop Practicing"}
                                 </button>
                                 </>
-                             }
+                            }
                         } else {
                             html!{
                                 <button class="favorite styled"
@@ -424,35 +432,26 @@ impl Component for PracticePlannerApp {
                         }}
                         <button class="favorite styled"
                                 type="button"
-                                onclick={ctx.link().callback(|_| Msg::ResetDataPrompt)}
-                                >
-                            { "Reset History" }
-                        </button>
-                        <button class="favorite styled"
-                                type="button"
                                 onclick={ctx.link().callback(|_| Msg::ShuffleToday)}
                                 >
                             { "Shuffle Today's Categories" }
                         </button>
-                    </section>
-                    <footer class={classes!("footer", hidden_class)}>
-                        <span class="todo-count">
-                            // <strong>{ self.state.total() }</strong>
-                            { " item(s) left" }
-                        </span>
-                        <ul class="filters">
-                            // { for Filter::iter().map(|flt| self.view_filter(flt, ctx.link())) }
-                        </ul>
-                        <button class="clear-completed" onclick={ctx.link().callback(|_| Msg::ClearCompleted)}>
-                            // { format!("Clear completed ({})", self.state.total_completed()) }
-                        </button>
-                    </footer>
-                </section>
-                <footer class="info">
-                    <p>{ "Some text goes here. Lorem ipsum dolor sit amet and so on." }</p>
-                    <AudioPlayer />
+                    </GridItem>
+                </Grid>
+                <footer class={classes!("footer", hidden_class)}>
+                    <span class="todo-count">
+                        // <strong>{ self.state.total() }</strong>
+                        { " item(s) left" }
+                    </span>
+                    <ul class="filters">
+                        // { for Filter::iter().map(|flt| self.view_filter(flt, ctx.link())) }
+                    </ul>
+                    <button class="clear-completed" onclick={ctx.link().callback(|_| Msg::ClearCompleted)}>
+                        // { format!("Clear completed ({})", self.state.total_completed()) }
+                    </button>
                 </footer>
-            </div>
+            </Bullseye>
+            <AudioPlayer />
             </>
         }
     }
