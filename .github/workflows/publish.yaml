@@ -15,7 +15,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v2
         with:
-          path: main
+          path: webapp
 
       - uses: actions/cache@v2
         with:
@@ -51,10 +51,10 @@ jobs:
           node-version: '12'
 
       - name: Install dependencies
-        run: cd main && npm install
+        run: cd webapp && npm install
 
       - name: Build page
-        run: cd main && trunk build --public-url /patternfly-yew-quickstart
+        run: cd webapp && trunk build --public-url /patternfly-yew-quickstart
 
       - name: Checkout current pages
         uses: actions/checkout@v2
@@ -70,7 +70,7 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/pages"
           rm * -Rf
-          cp -a "$GITHUB_WORKSPACE"/main/dist/* .
+          cp -a "$GITHUB_WORKSPACE"/webapp/dist/* .
           git add -A
           if ! git diff --cached --exit-code; then
             echo "Changes have been detected, publishing to repo."
