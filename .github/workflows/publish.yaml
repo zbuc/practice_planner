@@ -1,0 +1,82 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+        with:
+          path: main
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+          target: wasm32-unknown-unknown
+
+      - name: Install trunk
+        run: |
+          curl -sL https://github.com/thedodd/trunk/releases/download/v0.14.0/trunk-x86_64-unknown-linux-gnu.tar.gz -o trunk-x86_64-unknown-linux-gnu.tar.gz
+          tar xzf trunk-x86_64-unknown-linux-gnu.tar.gz
+          sudo install trunk /usr/bin/trunk
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '12'
+
+      - name: Install dependencies
+        run: cd main && npm install
+
+      - name: Build page
+        run: cd main && trunk build --public-url /patternfly-yew-quickstart
+
+      - name: Checkout current pages
+        uses: actions/checkout@v2
+        with:
+          ref: gh-pages
+          path: pages
+
+      - run: |
+          cd "$GITHUB_WORKSPACE/pages"
+          git config user.name "GitHub Actions" && git config user.email "actions@users.noreply.github.com"
+
+      - name: Update content
+        run: |
+          cd "$GITHUB_WORKSPACE/pages"
+          rm * -Rf
+          cp -a "$GITHUB_WORKSPACE"/main/dist/* .
+          git add -A
+          if ! git diff --cached --exit-code; then
+            echo "Changes have been detected, publishing to repo."
+            git commit -m "Build ${GITHUB_WORKFLOW} for ${GITHUB_SHA}"
+            git log --graph --abbrev-commit --date=relative -n 5
+            git push origin
+          else
+            echo "No changes have been detected since last build, nothing to publish"
+          fi
