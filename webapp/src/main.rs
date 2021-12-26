@@ -3,7 +3,9 @@ use core::time;
 use std;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
+use std::env::current_dir;
 use std::ops::Sub;
+use yew::prelude::*;
 
 use anyhow::Result;
 use chrono::{Date, Utc};
@@ -18,7 +20,10 @@ use patternfly_yew::*;
 use pplib::PracticeSession;
 use yew::{classes, html, html::Scope, Classes, Component, Context, Html};
 
+use crate::components::icons::*;
 use pplib::{PracticeCategory, SchedulePlanner};
+
+mod components;
 
 // Use `wee_alloc` as the global allocator.
 #[global_allocator]
@@ -41,6 +46,7 @@ pub enum Msg {
     PracticeTick,
     ResetDataPrompt,
     ResetData,
+    ShuffleToday,
 }
 
 pub struct PracticePlannerApp {
@@ -183,9 +189,9 @@ impl Component for PracticePlannerApp {
             }
         };
 
-        scheduler
-            .update_todays_schedule(false)
-            .expect("Unable to update today's schedule");
+        // scheduler
+        //     .update_todays_schedule(false, current_time)
+        //     .expect("Unable to update today's schedule");
         Self {
             scheduler,
             interval: None,
@@ -239,14 +245,24 @@ impl Component for PracticePlannerApp {
             }
             Msg::ResetData => {
                 self.scheduler = SchedulePlanner::new();
+                let current_time = Utc::now();
                 self.scheduler
-                    .update_todays_schedule(false)
+                    .update_todays_schedule(false, current_time)
                     .expect("able to update schedule");
                 self.save().expect("umable to save");
             }
+            Msg::ShuffleToday => {
+                if !self.scheduler.practicing {
+                    let current_time = Utc::now();
+                    self.scheduler
+                        .update_todays_schedule(true, current_time)
+                        .expect("able to update schedule");
+                }
+            }
             Msg::StopPracticing => {
+                let current_time = Utc::now();
                 self.scheduler
-                    .update_todays_schedule(false)
+                    .update_todays_schedule(false, current_time)
                     .expect("able to update schedule");
                 // save state
                 self.save().expect("unable to save");
@@ -272,8 +288,9 @@ impl Component for PracticePlannerApp {
 
                 if time_elapsed > total_time {
                     // move to next category
+                    let current_time = Utc::now();
                     self.scheduler
-                        .advance_practice_session()
+                        .advance_practice_session(current_time)
                         .expect("unable to advance");
 
                     if !self.scheduler.practicing {
@@ -282,7 +299,7 @@ impl Component for PracticePlannerApp {
                         }
                         self.save().expect("unable to save");
                         self.scheduler
-                            .update_todays_schedule(false)
+                            .update_todays_schedule(false, current_time)
                             .expect("unable to update schedule");
                     }
                 }
@@ -294,8 +311,9 @@ impl Component for PracticePlannerApp {
                     .set_time_left(time_left);
             }
             Msg::StartPracticing => {
+                let current_time = Utc::now();
                 self.scheduler
-                    .start_daily_practice()
+                    .start_daily_practice(current_time)
                     .expect("failed daily practice");
                 self.scheduler.practice_session.as_mut().unwrap().start_time = chrono::Utc::now();
                 self.scheduler
@@ -343,10 +361,11 @@ impl Component for PracticePlannerApp {
         }
         let practicing = self.scheduler.practicing;
         let category_list = self.scheduler.get_todays_schedule();
+        let current_time = Utc::now();
         // TODO use a constant here
         let history_list = self
             .scheduler
-            .get_history_n_days_back(3)
+            .get_history_n_days_back(3, current_time)
             .expect("unable to retrieve history");
         html! {
             <>
@@ -400,6 +419,12 @@ impl Component for PracticePlannerApp {
                                 >
                             { "Reset History" }
                         </button>
+                        <button class="favorite styled"
+                                type="button"
+                                onclick={ctx.link().callback(|_| Msg::ShuffleToday)}
+                                >
+                            { "Shuffle Today's Categories" }
+                        </button>
                     </section>
                     <footer class={classes!("footer", hidden_class)}>
                         <span class="todo-count">
@@ -416,6 +441,7 @@ impl Component for PracticePlannerApp {
                 </section>
                 <footer class="info">
                     <p>{ "Some text goes here. Lorem ipsum dolor sit amet and so on." }</p>
+                    <p><AudioPlayer /></p>
                 </footer>
             </div>
             </>
@@ -445,6 +471,47 @@ fn main() {
     // };
 }
 
-pub fn get_todays_schedule() -> Result<Vec<PracticeCategory>> {
-    Ok(vec![])
+#[function_component(AudioPlayer)]
+pub fn audio_player() -> Html {
+    let player = NodeRef::default();
+
+    // https://github.com/ProjectAnni/annil-web/blob/641e28f10d91ea7e09e9f7b663f76f786b1cbfa3/src/components/bottom_player.rs
+    let play_icon = move || -> Html {
+        html! { <IconPlay /> }
+    };
+
+    let audio_url = "ding.wav".to_string();
+
+    let toggle_playing = {
+        let player = player.clone();
+        // let is_playing = is_playing.clone();
+        Callback::from(move |_| {
+            if let Some(audio) = player.cast::<web_sys::HtmlAudioElement>() {
+                // let is_playing = is_playing.clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    // toggle music
+                    if audio.paused() {
+                        let toggle_play = audio.play().expect("Failed to play audio");
+                        if let Err(err) = wasm_bindgen_futures::JsFuture::from(toggle_play).await {
+                            log::error!("{:?}", err);
+                        } else {
+                            // is_playing.set(true);
+                        }
+                    } else {
+                        audio.pause().expect("Failed to pause audio");
+                        // is_playing.set(false);
+                    }
+                });
+            } else {
+                unreachable!()
+            }
+        })
+    };
+
+    html! {
+        <>
+        <span onclick={toggle_playing}>{ play_icon() }</span>
+        <audio class="hidden" src={audio_url.to_string()} ref={player} />
+        </>
+    }
 }

@@ -23,7 +23,10 @@ lazy_static! {
             category_name: "Ear Training".to_string(),
         },
         PracticeCategory {
-            category_name: "Exercises".to_string(),
+            category_name: "Right-Hand Exercises".to_string(),
+        },
+        PracticeCategory {
+            category_name: "Left-Hand Exercises".to_string(),
         },
         PracticeCategory {
             category_name: "Chords".to_string(),
@@ -42,6 +45,9 @@ lazy_static! {
         },
         PracticeCategory {
             category_name: "Songwriting".to_string(),
+        },
+        PracticeCategory {
+            category_name: "Rhythm".to_string(),
         },
     ];
 }
@@ -145,13 +151,18 @@ impl SchedulePlanner<'_> {
         self.todays_schedule.as_ref()
     }
 
+    /// Returns the number of consecutive days of practice prior to today.
+    pub fn get_streak(&self, current_time: DateTime<Utc>) -> usize {
+        0
+    }
+
     /// Returns the categories seen in the last n days of history as a HashSet<&PracticeCategory>
     pub fn get_history_n_days_back(
         &self,
         n: usize,
+        current_time: DateTime<Utc>,
     ) -> Result<BTreeMap<Date<Utc>, HashSet<&PracticeCategory>>> {
-        let now = Utc::now();
-        let n_days_back = now.checked_sub_signed(Duration::days(n.try_into().unwrap()));
+        let n_days_back = current_time.checked_sub_signed(Duration::days(n.try_into().unwrap()));
         if n_days_back.is_none() {
             return Err(anyhow::anyhow!("Invalid historical search term"));
         }
@@ -194,7 +205,11 @@ impl SchedulePlanner<'_> {
         seen_days.len()
     }
 
-    pub fn update_todays_schedule(&mut self, force_update: bool) -> Result<(), SchedulerError> {
+    pub fn update_todays_schedule(
+        &mut self,
+        force_update: bool,
+        current_time: DateTime<Utc>,
+    ) -> Result<(), SchedulerError> {
         if self.todays_schedule.is_some() && !force_update {
             // schedule is already set and we didn't force an update
             return Ok(());
@@ -204,7 +219,8 @@ impl SchedulePlanner<'_> {
             return Err(SchedulerError::MissingCategories());
         }
 
-        let past_history = self.get_history_n_days_back(self.config.category_repeat_days)?;
+        let past_history =
+            self.get_history_n_days_back(self.config.category_repeat_days, current_time)?;
         let prob_bandwidth: f64 = 100.0 / self.config.category_repeat_days as f64;
 
         let mut probabilities: BTreeMap<&PracticeCategory, u64> = BTreeMap::new();
@@ -232,6 +248,7 @@ impl SchedulePlanner<'_> {
             }
         }
 
+        log::info!("probabilities: {:#?}", probabilities);
         self.todays_schedule = Some(
             probabilities
                 .iter()
@@ -248,7 +265,7 @@ impl SchedulePlanner<'_> {
         return Ok(());
     }
 
-    pub fn advance_practice_session(&mut self) -> Result<()> {
+    pub fn advance_practice_session(&mut self, current_time: DateTime<Utc>) -> Result<()> {
         log::info!("Advancing to next category...");
         if self.practice_session.is_none() {
             return Err(anyhow::anyhow!("Expected practice session"));
@@ -257,13 +274,13 @@ impl SchedulePlanner<'_> {
             == self.practice_session.as_ref().unwrap().schedule.len() - 1
         {
             // practice session is complete
-            return self.mark_todays_practice_completed();
+            return self.mark_todays_practice_completed(current_time);
         }
 
         // advance to the next category
         self.practice_session.as_mut().unwrap().current_category =
             self.practice_session.as_mut().unwrap().current_category + 1;
-        self.practice_session.as_mut().unwrap().category_start_time = chrono::Utc::now();
+        self.practice_session.as_mut().unwrap().category_start_time = current_time;
         // self.practice_session.unwrap().category_start_time = now;
         Ok(())
     }
@@ -321,10 +338,10 @@ impl SchedulePlanner<'_> {
         Ok(())
     }
 
-    pub fn start_daily_practice<'a>(&'a mut self) -> Result<()> {
+    pub fn start_daily_practice<'a>(&'a mut self, current_time: DateTime<Utc>) -> Result<()> {
         self.practicing = true;
         // ensure today's schedule has been set
-        self.update_todays_schedule(false)?;
+        self.update_todays_schedule(false, current_time)?;
         let schedule = self.todays_schedule.as_ref().unwrap().clone();
         self.practice_session = Some(PracticeSession {
             schedule: schedule,
@@ -332,8 +349,8 @@ impl SchedulePlanner<'_> {
             completed: HashMap::new(),
             time_left: Duration::seconds(0),
             // TODO maybe make an Option type
-            start_time: chrono::Utc::now(),
-            category_start_time: chrono::Utc::now(),
+            start_time: current_time,
+            category_start_time: current_time,
         });
         for category in self.todays_schedule.as_ref().unwrap().iter() {
             log::info!("Starting practice for category: {:#?}", category);
@@ -347,7 +364,7 @@ impl SchedulePlanner<'_> {
         Ok(())
     }
 
-    fn mark_todays_practice_completed(&mut self) -> Result<()> {
+    fn mark_todays_practice_completed(&mut self, current_time: DateTime<Utc>) -> Result<()> {
         if self.todays_schedule.is_none() {
             return Err(anyhow::anyhow!(
                 "today's practice must be set to mark completed"
@@ -357,9 +374,10 @@ impl SchedulePlanner<'_> {
         self.practicing = false;
 
         // append today's practice to the history
-        let now = Utc::now();
-        self.history
-            .insert(now, self.todays_schedule.as_ref().unwrap().to_vec());
+        self.history.insert(
+            current_time,
+            self.todays_schedule.as_ref().unwrap().to_vec(),
+        );
 
         // unset today's practice on Self
         self.todays_schedule = None;
