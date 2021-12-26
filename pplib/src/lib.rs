@@ -4,6 +4,7 @@ extern crate lazy_static;
 use std;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
+use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -48,8 +49,6 @@ lazy_static! {
     ];
 }
 
-const KEY: &str = "yew.practiceplanner.self";
-
 #[derive(Error, Debug)]
 pub enum SchedulerError {
     // #[error("Invalid header (expected {expected:?}, got {found:?})")]
@@ -72,6 +71,12 @@ pub struct PracticeSkill {
 #[derive(Serialize, Deserialize, Clone, Hash, PartialOrd, Ord, PartialEq, Eq, Debug)]
 pub struct PracticeCategory {
     pub category_name: String,
+}
+
+impl fmt::Display for PracticeCategory {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.category_name)
+    }
 }
 
 #[serde_with::serde_as]

@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use text_io::read;
 use thiserror::Error;
 use web_sys::HtmlInputElement as InputElement;
+use yew::scheduler;
 use yew::{
     classes,
     events::{FocusEvent, KeyboardEvent},
@@ -31,6 +32,8 @@ use pplib::{PracticeCategory, PracticeSkill, SchedulePlanner};
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+const KEY: &str = "yew.practiceplanner.self";
+
 pub enum Msg {
     Add(String),
     Edit((usize, String)),
@@ -41,6 +44,7 @@ pub enum Msg {
     ClearCompleted,
     Focus,
     BeginPractice,
+    ResetData,
 }
 
 pub struct PracticePlannerApp {
@@ -104,15 +108,17 @@ impl PracticePlannerApp {
             <ul class="history-list">
             {
                 for history_list.iter().map(|(day, day_categories)|{
-                    html! { <li><strong>{ day }</strong>{ ": lol" }</li> }
+                    html! { <li><strong>{ day }</strong>{ day_categories.iter().map(|cat| format!("{}", cat)).collect::<Vec<_>>().join(", ") }</li> }
                 })
             }
-            // html!{    for (day, day_categories) in history_list.iter() {
-            //         <span></span>
-            //     }
-            // }
             </ul>
         }
+    }
+
+    fn save(&self) -> Result<()> {
+        // TODO need to bubble this error up actually
+        LocalStorage::set(KEY, &self.scheduler).expect("able to save");
+        Ok(())
     }
 
     fn view_category_list(
@@ -152,36 +158,14 @@ impl Component for PracticePlannerApp {
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {
-        // let entries = LocalStorage::get(KEY).unwrap_or_else(|_| Vec::new());
-        // let state = State {
-        //     entries,
-        //     filter: Filter::All,
-        //     edit_value: "".into(),
-        // };
-        let focus_ref = NodeRef::default();
-        // Self { state, focus_ref }
-
-        // TODO webapp should use LocalStorage for storage
-        let mut scheduler = match Path::new("./saved_data/history.bin").exists() {
-            true => {
-                log::info!("Saved data found, loading...");
-                match SchedulePlanner::new_from_disk() {
-                    Ok(sp) => sp,
-                    Err(_e) => {
-                        // TODO the import/export mechanism is extremely fragile
-                        // if the data structure is changed
-                        log::info!("Error loading history file");
-                        SchedulePlanner::new()
-                    }
-                }
-            }
-            false => SchedulePlanner::new(),
+        let mut scheduler = match LocalStorage::get(KEY) {
+            Ok(sp) => sp,
+            Err(_e) => SchedulePlanner::new(),
         };
 
         scheduler
             .update_todays_schedule(false)
             .expect("Unable to update today's schedule");
-        // let todays_schedule = scheduler.get_todays_schedule();
         Self { scheduler }
     }
 
@@ -212,6 +196,13 @@ impl Component for PracticePlannerApp {
                 // self.state.clear_all_edit();
                 // self.state.toggle_edit(idx);
             }
+            Msg::ResetData => {
+                self.scheduler = SchedulePlanner::new();
+                self.scheduler
+                    .update_todays_schedule(false)
+                    .expect("able to update schedule");
+                self.save().expect("umable to save");
+            }
             Msg::BeginPractice => {
                 self.scheduler
                     .start_daily_practice()
@@ -219,6 +210,8 @@ impl Component for PracticePlannerApp {
                 self.scheduler
                     .update_todays_schedule(false)
                     .expect("able to update schedule");
+                // save state
+                self.save().expect("unable to save");
                 // let status = !self.state.is_all_completed();
                 // self.state.toggle_all(status);
             }
@@ -284,6 +277,12 @@ impl Component for PracticePlannerApp {
                                 onclick={ctx.link().callback(|_| Msg::BeginPractice)}
                                 >
                             { "Begin Practice" }
+                        </button>
+                        <button class="favorite styled"
+                                type="button"
+                                onclick={ctx.link().callback(|_| Msg::ResetData)}
+                                >
+                            { "Reset History" }
                         </button>
                     </section>
                     <footer class={classes!("footer", hidden_class)}>
