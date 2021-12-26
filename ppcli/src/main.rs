@@ -92,7 +92,7 @@ impl SchedulePlanner {
         // let (_stream, _stream_handle) = OutputStream::try_default().unwrap();
         SchedulePlanner {
             //category_practice_time: Duration::minutes(15),
-            category_practice_time: Duration::seconds(1),
+            category_practice_time: Duration::minutes(1),
             category_repeat_days: 2,
             categories: DEFAULT_CATEGORIES.to_vec(),
             history: BTreeMap::new(),

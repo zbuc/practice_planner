@@ -81,12 +81,12 @@ impl fmt::Display for PracticeCategory {
 pub struct PlannerConfiguration {
     /// The duration each category is to be practiced.
     #[serde_as(as = "serde_with::DurationSeconds<i64>")]
-    category_practice_time: Duration,
+    pub category_practice_time: Duration,
     /// The max number of days allowed to elapse without practicing a category.
-    category_repeat_days: usize,
+    pub category_repeat_days: usize,
     /// The number of categories to practice per day.
-    categories_per_day: usize,
-    categories: Vec<PracticeCategory>,
+    pub categories_per_day: usize,
+    pub categories: Vec<PracticeCategory>,
 }
 
 #[derive(Debug)]
@@ -109,7 +109,14 @@ pub struct PracticeSession<'a> {
     pub schedule: Vec<PracticeCategory>,
     pub current_category: u64,
     pub completed: HashMap<&'a PracticeCategory, bool>,
-    pub time_left: u64,
+    pub time_left: Duration,
+    pub start_time: DateTime<Utc>,
+}
+
+impl<'a> PracticeSession<'a> {
+    pub fn set_time_left(&mut self, time_left: Duration) {
+        self.time_left = time_left;
+    }
 }
 
 impl SchedulePlanner<'_> {
@@ -120,7 +127,7 @@ impl SchedulePlanner<'_> {
             //category_practice_time: Duration::minutes(15),
             config: PlannerConfiguration {
                 categories_per_day: 4,
-                category_practice_time: Duration::seconds(1),
+                category_practice_time: Duration::minutes(15),
                 category_repeat_days: 2,
                 categories: DEFAULT_CATEGORIES.to_vec(),
             },
@@ -301,7 +308,9 @@ impl SchedulePlanner<'_> {
             schedule: schedule,
             current_category: 0,
             completed: HashMap::new(),
-            time_left: 0,
+            time_left: Duration::seconds(0),
+            // TODO maybe make an Option type
+            start_time: chrono::Utc::now(),
         });
         for category in self.todays_schedule.as_ref().unwrap().iter() {
             log::info!("Starting practice for category: {:#?}", category);

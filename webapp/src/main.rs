@@ -1,7 +1,9 @@
 #![recursion_limit = "1024"]
+use core::time;
 use std;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
+use std::ops::Sub;
 
 use anyhow::Result;
 use chrono::{Date, Utc};
@@ -10,6 +12,7 @@ use gloo::{
     console::{self, Timer},
     timers::callback::{Interval, Timeout},
 };
+use hhmmss::Hhmmss;
 use log;
 use patternfly_yew::*;
 use pplib::PracticeSession;
@@ -244,11 +247,36 @@ impl Component for PracticePlannerApp {
             }
             Msg::PracticeTick => {
                 log::info!("Tick");
+
+                let now = chrono::Utc::now();
+                let time_elapsed =
+                    now.sub(self.scheduler.practice_session.as_ref().unwrap().start_time);
+                let total_time = self.scheduler.config.category_practice_time;
+                log::info!("Config: {:#?}", self.scheduler.config);
+                log::info!("Total time: {}", total_time.num_minutes());
+                log::info!("Time elapsed: {}", time_elapsed);
+                let time_left = total_time - time_elapsed;
+                log::info!("Time left: {}", time_left);
+                // let time_left = self
+                //     .scheduler
+                //     .practice_session
+                //     .as_ref()
+                //     .unwrap()
+                //     .start_time
+                //     .sub(now);
+                self.scheduler
+                    .practice_session
+                    .as_mut()
+                    .unwrap()
+                    .set_time_left(time_left);
             }
             Msg::StartPracticing => {
                 self.scheduler
                     .start_daily_practice()
                     .expect("failed daily practice");
+                self.scheduler.practice_session.as_mut().unwrap().start_time = chrono::Utc::now();
+                self.scheduler.practice_session.as_mut().unwrap().time_left =
+                    self.scheduler.config.category_practice_time;
                 let handle = {
                     let link = ctx.link().clone();
                     Interval::new(1000, move || link.send_message(Msg::PracticeTick))
@@ -327,7 +355,7 @@ impl Component for PracticePlannerApp {
                         { if practicing {
                             html!{
                                 <>
-                                <h3>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left }</h3>
+                                <h3>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</h3>
                                 <button class="favorite styled"
                                         type="button"
                                         onclick={ctx.link().callback(|_| Msg::StopPracticing)}
