@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use std::collections::HashSet;
 
 use anyhow::Result;
+use chrono::Local;
 use chrono::{Date, Utc};
 use gloo::storage::{LocalStorage, Storage};
 use log;
@@ -15,7 +16,8 @@ use pplib::{PracticeCategory, SchedulePlanner};
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-const KEY: &str = "yew.practiceplanner.self";
+const CONFIG_KEY: &str = "yew.practiceplanner.config";
+const HISTORY_KEY: &str = "yew.practiceplanner.history";
 
 pub enum Msg {
     Add(String),
@@ -95,8 +97,8 @@ impl PracticePlannerApp {
 
     fn save(&self) -> Result<()> {
         // TODO need to bubble this error up actually
-        // TODO need to store history and config
-        LocalStorage::set(KEY, &self.scheduler.config).expect("able to save");
+        LocalStorage::set(CONFIG_KEY, &self.scheduler.config).expect("able to save");
+        LocalStorage::set(HISTORY_KEY, &self.scheduler.config).expect("able to save");
         Ok(())
     }
 
@@ -137,10 +139,12 @@ impl Component for PracticePlannerApp {
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {
-        let mut scheduler = match LocalStorage::get(KEY) {
+        let config = LocalStorage::get(CONFIG_KEY);
+        let history = LocalStorage::get(HISTORY_KEY);
+        let mut scheduler = match config {
             Ok(conf) => SchedulePlanner {
                 config: conf,
-                history: BTreeMap::new(),
+                history: history.unwrap_or_default(),
                 todays_schedule: None,
                 practicing: false,
                 practice_session: None,
