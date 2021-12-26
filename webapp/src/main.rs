@@ -61,6 +61,8 @@ impl PracticePlannerApp {
         let mut class = Classes::from("todo");
         if practicing && active as usize == idx {
             class.push("active-category");
+        } else if practicing && active as usize > idx {
+            class.push("completed-category")
         }
         log::info!("making the category item");
         html! {
@@ -69,7 +71,7 @@ impl PracticePlannerApp {
                     <input
                         type="checkbox"
                         class="toggle"
-                        // checked={entry.completed}
+                        checked={practicing && active as usize > idx}
                         onclick={link.callback(move |_| Msg::Toggle(idx))}
                     />
                     <label ondblclick={link.callback(move |_| Msg::ToggleEdit(idx))}>{ &category.category_name}</label>
@@ -86,12 +88,6 @@ impl PracticePlannerApp {
         _link: &Scope<Self>,
     ) -> Html {
         let _class = Classes::from("todo");
-        // if entry.editing {
-        //     class.push(" editing");
-        // }
-        // if entry.completed {
-        //     class.push(" completed");
-        // }
         log::info!("making the history list");
 
         if history_list.is_empty() {
@@ -100,13 +96,20 @@ impl PracticePlannerApp {
             };
         }
 
+        let hl = history_list
+            .iter()
+            .map(|(day, day_categories)| {
+                let mut dc = day_categories
+                    .iter()
+                    .map(|cat| format!("{}", cat))
+                    .collect::<Vec<_>>();
+                dc.sort();
+                html! { <li><strong>{ day }</strong>{ dc.join(", ") }</li> }
+            })
+            .collect::<Vec<_>>();
         html! {
             <ul class="history-list">
-            {
-                for history_list.iter().map(|(day, day_categories)|{
-                    html! { <li><strong>{ day }</strong>{ day_categories.iter().map(|cat| format!("{}", cat)).collect::<Vec<_>>().join(", ") }</li> }
-                })
-            }
+            { hl }
             </ul>
         }
     }
