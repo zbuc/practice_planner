@@ -113,8 +113,9 @@ impl PracticePlannerApp {
 
     fn save(&self) -> Result<()> {
         // TODO need to bubble this error up actually
+        log::info!("Saving...");
         LocalStorage::set(CONFIG_KEY, &self.scheduler.config).expect("able to save");
-        LocalStorage::set(HISTORY_KEY, &self.scheduler.config).expect("able to save");
+        LocalStorage::set(HISTORY_KEY, &self.scheduler.history).expect("able to save");
         Ok(())
     }
 
@@ -163,14 +164,20 @@ impl Component for PracticePlannerApp {
         let config = LocalStorage::get(CONFIG_KEY);
         let history = LocalStorage::get(HISTORY_KEY);
         let mut scheduler = match config {
-            Ok(conf) => SchedulePlanner {
-                config: conf,
-                history: history.unwrap_or_default(),
-                todays_schedule: None,
-                practicing: false,
-                practice_session: None,
-            },
-            Err(_e) => SchedulePlanner::new(),
+            Ok(conf) => {
+                log::info!("Found saved data: {:#?}", history);
+                SchedulePlanner {
+                    config: conf,
+                    history: history.unwrap_or_default(),
+                    todays_schedule: None,
+                    practicing: false,
+                    practice_session: None,
+                }
+            }
+            Err(_e) => {
+                log::info!("Did not find saved data");
+                SchedulePlanner::new()
+            }
         };
 
         scheduler
@@ -243,6 +250,9 @@ impl Component for PracticePlannerApp {
                 self.scheduler
                     .stop_practicing()
                     .expect("failed to stop practicing");
+                if let Some(timer) = self.interval.take() {
+                    drop(timer);
+                }
             }
             Msg::PracticeTick => {
                 log::info!("Tick");
@@ -259,20 +269,21 @@ impl Component for PracticePlannerApp {
 
                 if time_elapsed > total_time {
                     // move to next category
-                    self.scheduler.advance_practice_session();
+                    self.scheduler
+                        .advance_practice_session()
+                        .expect("unable to advance");
+
+                    if !self.scheduler.practicing {
+                        if let Some(timer) = self.interval.take() {
+                            drop(timer);
+                        }
+                        self.save().expect("unable to save");
+                        self.scheduler
+                            .update_todays_schedule(false)
+                            .expect("unable to update schedule");
+                    }
                 }
-                log::info!("Config: {:#?}", self.scheduler.config);
-                log::info!("Total time: {}", total_time.num_minutes());
-                log::info!("Time elapsed: {}", time_elapsed);
                 let time_left = total_time - time_elapsed;
-                log::info!("Time left: {}", time_left);
-                // let time_left = self
-                //     .scheduler
-                //     .practice_session
-                //     .as_ref()
-                //     .unwrap()
-                //     .start_time
-                //     .sub(now);
                 self.scheduler
                     .practice_session
                     .as_mut()
@@ -293,14 +304,9 @@ impl Component for PracticePlannerApp {
                     self.scheduler.config.category_practice_time;
                 let handle = {
                     let link = ctx.link().clone();
-                    Interval::new(1000, move || link.send_message(Msg::PracticeTick))
+                    Interval::new(100, move || link.send_message(Msg::PracticeTick))
                 };
                 self.interval = Some(handle);
-
-                // console::clear!();
-
-                // let status = !self.state.is_all_completed();
-                // self.state.toggle_all(status);
             }
             Msg::ToggleAll => {
                 // let status = !self.state.is_all_completed();

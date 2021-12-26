@@ -129,7 +129,7 @@ impl SchedulePlanner<'_> {
             config: PlannerConfiguration {
                 categories_per_day: 4,
                 // category_practice_time: Duration::minutes(15),
-                category_practice_time: Duration::seconds(5),
+                category_practice_time: Duration::seconds(2),
                 category_repeat_days: 2,
                 categories: DEFAULT_CATEGORIES.to_vec(),
             },
@@ -353,6 +353,8 @@ impl SchedulePlanner<'_> {
                 "today's practice must be set to mark completed"
             ));
         }
+
+        self.practicing = false;
 
         // append today's practice to the history
         let now = Utc::now();
