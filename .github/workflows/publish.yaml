@@ -15,7 +15,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v2
         with:
-          path: webapp
+          path: main
 
       - uses: actions/cache@v2
         with:
@@ -51,10 +51,10 @@ jobs:
           node-version: '12'
 
       - name: Install dependencies
-        run: cd webapp && npm install
+        run: cd main/webapp && npm install
 
       - name: Build page
-        run: cd webapp && trunk build
+        run: cd main/webapp && trunk build --release
 
       - name: Checkout current pages
         uses: actions/checkout@v2
@@ -70,7 +70,7 @@ jobs:
         run: |
           cd "$GITHUB_WORKSPACE/pages"
           rm * -Rf
-          cp -a "$GITHUB_WORKSPACE"/webapp/dist/* .
+          cp -a "$GITHUB_WORKSPACE"/main/webapp/dist/* .
           git add -A
           if ! git diff --cached --exit-code; then
             echo "Changes have been detected, publishing to repo."
