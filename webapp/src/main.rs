@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use std::env::current_dir;
 use std::ops::Sub;
 use yew::prelude::*;
+use yew_agent::{Dispatched, Dispatcher};
 
 use anyhow::Result;
 use chrono::{Date, Utc};
@@ -20,6 +21,8 @@ use patternfly_yew::*;
 use pplib::PracticeSession;
 use yew::{classes, html, html::Scope, Classes, Component, Context, Html};
 
+use crate::components::audio_player::*;
+use crate::components::event_bus::{EventBus, Request};
 use crate::components::icons::*;
 use pplib::{PracticeCategory, SchedulePlanner};
 
@@ -54,6 +57,7 @@ pub struct PracticePlannerApp {
     // focus_ref: NodeRef,
     scheduler: SchedulePlanner<'static>,
     interval: Option<Interval>,
+    event_bus: Dispatcher<EventBus>,
 }
 
 impl PracticePlannerApp {
@@ -195,6 +199,7 @@ impl Component for PracticePlannerApp {
         Self {
             scheduler,
             interval: None,
+            event_bus: EventBus::dispatcher(),
         }
     }
 
@@ -292,6 +297,10 @@ impl Component for PracticePlannerApp {
                     self.scheduler
                         .advance_practice_session(current_time)
                         .expect("unable to advance");
+
+                    // play a ding sound
+                    self.event_bus
+                        .send(Request::EventBusMsg("ding.wav".to_owned()));
 
                     if !self.scheduler.practicing {
                         if let Some(timer) = self.interval.take() {
@@ -441,7 +450,7 @@ impl Component for PracticePlannerApp {
                 </section>
                 <footer class="info">
                     <p>{ "Some text goes here. Lorem ipsum dolor sit amet and so on." }</p>
-                    <p><AudioPlayer /></p>
+                    <AudioPlayer />
                 </footer>
             </div>
             </>
@@ -469,49 +478,4 @@ fn main() {
     //         println!("{}", line);
     //     }
     // };
-}
-
-#[function_component(AudioPlayer)]
-pub fn audio_player() -> Html {
-    let player = NodeRef::default();
-
-    // https://github.com/ProjectAnni/annil-web/blob/641e28f10d91ea7e09e9f7b663f76f786b1cbfa3/src/components/bottom_player.rs
-    let play_icon = move || -> Html {
-        html! { <IconPlay /> }
-    };
-
-    let audio_url = "ding.wav".to_string();
-
-    let toggle_playing = {
-        let player = player.clone();
-        // let is_playing = is_playing.clone();
-        Callback::from(move |_| {
-            if let Some(audio) = player.cast::<web_sys::HtmlAudioElement>() {
-                // let is_playing = is_playing.clone();
-                wasm_bindgen_futures::spawn_local(async move {
-                    // toggle music
-                    if audio.paused() {
-                        let toggle_play = audio.play().expect("Failed to play audio");
-                        if let Err(err) = wasm_bindgen_futures::JsFuture::from(toggle_play).await {
-                            log::error!("{:?}", err);
-                        } else {
-                            // is_playing.set(true);
-                        }
-                    } else {
-                        audio.pause().expect("Failed to pause audio");
-                        // is_playing.set(false);
-                    }
-                });
-            } else {
-                unreachable!()
-            }
-        })
-    };
-
-    html! {
-        <>
-        <span onclick={toggle_playing}>{ play_icon() }</span>
-        <audio class="hidden" src={audio_url.to_string()} ref={player} />
-        </>
-    }
 }
