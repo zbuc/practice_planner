@@ -54,7 +54,7 @@ jobs:
         run: cd webapp && npm install
 
       - name: Build page
-        run: cd webapp && trunk build --public-url /patternfly-yew-quickstart
+        run: cd webapp && trunk build
 
       - name: Checkout current pages
         uses: actions/checkout@v2
