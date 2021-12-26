@@ -3,6 +3,7 @@ extern crate lazy_static;
 
 use std;
 use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
@@ -77,7 +78,7 @@ impl fmt::Display for PracticeCategory {
 
 #[serde_with::serde_as]
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
-pub struct SchedulePlanner {
+pub struct PlannerConfiguration {
     /// The duration each category is to be practiced.
     #[serde_as(as = "serde_with::DurationSeconds<i64>")]
     category_practice_time: Duration,
@@ -86,23 +87,43 @@ pub struct SchedulePlanner {
     /// The number of categories to practice per day.
     categories_per_day: usize,
     categories: Vec<PracticeCategory>,
-    /// BTreeMap containing historical practice sessions.
-    history: BTreeMap<DateTime<Utc>, Vec<PracticeCategory>>,
-    todays_schedule: Option<Vec<PracticeCategory>>,
 }
 
-impl SchedulePlanner {
+#[derive(Debug)]
+pub struct SchedulePlanner<'a> {
+    pub config: PlannerConfiguration,
+    /// BTreeMap containing historical practice sessions.
+    pub history: BTreeMap<DateTime<Utc>, Vec<PracticeCategory>>,
+    pub todays_schedule: Option<Vec<PracticeCategory>>,
+    /// Whether a practice session is currently underway
+    pub practicing: bool,
+    /// The in-progress practice session
+    pub practice_session: Option<PracticeSession<'a>>,
+}
+
+#[derive(Debug)]
+pub struct PracticeSession<'a> {
+    schedule: &'a Vec<PracticeCategory>,
+    current_category: &'a PracticeCategory,
+    completed: HashMap<&'a PracticeCategory, bool>,
+}
+
+impl SchedulePlanner<'_> {
     pub fn new() -> Self {
         // Call this here so it's cached and faster later
         // let (_stream, _stream_handle) = OutputStream::try_default().unwrap();
         SchedulePlanner {
             //category_practice_time: Duration::minutes(15),
-            category_practice_time: Duration::seconds(1),
-            category_repeat_days: 2,
-            categories: DEFAULT_CATEGORIES.to_vec(),
+            config: PlannerConfiguration {
+                categories_per_day: 4,
+                category_practice_time: Duration::seconds(1),
+                category_repeat_days: 2,
+                categories: DEFAULT_CATEGORIES.to_vec(),
+            },
             history: BTreeMap::new(),
             todays_schedule: None,
-            categories_per_day: 4,
+            practicing: false,
+            practice_session: None,
         }
     }
 
@@ -166,16 +187,16 @@ impl SchedulePlanner {
             return Ok(());
         }
 
-        if self.categories.len() == 0 {
+        if self.config.categories.len() == 0 {
             return Err(SchedulerError::MissingCategories());
         }
 
-        let past_history = self.get_history_n_days_back(self.category_repeat_days)?;
-        let prob_bandwidth: f64 = 100.0 / self.category_repeat_days as f64;
+        let past_history = self.get_history_n_days_back(self.config.category_repeat_days)?;
+        let prob_bandwidth: f64 = 100.0 / self.config.category_repeat_days as f64;
 
         let mut probabilities: BTreeMap<&PracticeCategory, u64> = BTreeMap::new();
 
-        for category in &self.categories {
+        for category in &self.config.categories {
             let mut seen = false;
             let mut d = 0;
             for (_day, day_categories) in past_history.iter() {
@@ -202,9 +223,11 @@ impl SchedulePlanner {
             probabilities
                 .iter()
                 .collect::<Vec<_>>()
-                .choose_multiple_weighted(&mut thread_rng(), self.categories_per_day, |item| {
-                    item.1.to_owned() as f64
-                })
+                .choose_multiple_weighted(
+                    &mut thread_rng(),
+                    self.config.categories_per_day,
+                    |item| item.1.to_owned() as f64,
+                )
                 .unwrap()
                 .map(|item| item.0.to_owned().to_owned())
                 .collect::<Vec<PracticeCategory>>(),
@@ -215,7 +238,7 @@ impl SchedulePlanner {
     pub fn start_category(&self, category: &PracticeCategory) -> Result<()> {
         log::info!(
             "Starting {} minute practice for category: {:#?}",
-            self.category_practice_time.num_minutes(),
+            self.config.category_practice_time.num_minutes(),
             category
         );
 
@@ -255,7 +278,18 @@ impl SchedulePlanner {
         Ok(())
     }
 
+    pub fn stop_practicing(&mut self) -> Result<()> {
+        if !self.practicing {
+            return Err(anyhow::anyhow!(
+                "tried to stop practicing while not practicing"
+            ));
+        }
+        self.practicing = false;
+        Ok(())
+    }
+
     pub fn start_daily_practice(&mut self) -> Result<()> {
+        self.practicing = true;
         // ensure today's schedule has been set
         self.update_todays_schedule(false)?;
         for category in self.todays_schedule.as_ref().unwrap().iter() {
@@ -265,7 +299,7 @@ impl SchedulePlanner {
         log::info!("Finished practicing for today!");
 
         // record this practice session in history, save to disk
-        self.mark_todays_practice_completed()?;
+        // self.mark_todays_practice_completed()?;
 
         Ok(())
     }
@@ -291,7 +325,8 @@ impl SchedulePlanner {
     }
 
     pub fn save_to_disk(&self) -> Result<()> {
-        let encoded: Vec<u8> = bincode::serialize(self).unwrap();
+        // TODO need to save history and config
+        let encoded: Vec<u8> = bincode::serialize(&self.config).unwrap();
         let mut file = File::create("./saved_data/history.bin")?;
         file.write_all(&encoded)?;
 
@@ -299,11 +334,18 @@ impl SchedulePlanner {
     }
 
     pub fn new_from_disk() -> Result<Self> {
+        // TODO need to load history and config
         let mut f = File::open("./saved_data/history.bin")?;
         let mut buffer = Vec::new();
         f.read_to_end(&mut buffer)?;
-        let decoded: Self = bincode::deserialize(&buffer[..])?;
+        let decoded: PlannerConfiguration = bincode::deserialize(&buffer[..])?;
 
-        Ok(decoded)
+        Ok(Self {
+            config: decoded,
+            history: BTreeMap::new(),
+            todays_schedule: None,
+            practicing: false,
+            practice_session: None,
+        })
     }
 }

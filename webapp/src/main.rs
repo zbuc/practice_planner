@@ -26,14 +26,15 @@ pub enum Msg {
     Toggle(usize),
     ClearCompleted,
     Focus,
-    BeginPractice,
+    StartPracticing,
+    StopPracticing,
     ResetData,
 }
 
 pub struct PracticePlannerApp {
     // state: State,
     // focus_ref: NodeRef,
-    scheduler: SchedulePlanner,
+    scheduler: SchedulePlanner<'static>,
 }
 
 impl PracticePlannerApp {
@@ -43,12 +44,6 @@ impl PracticePlannerApp {
         link: &Scope<Self>,
     ) -> Html {
         let class = Classes::from("todo");
-        // if entry.editing {
-        //     class.push(" editing");
-        // }
-        // if entry.completed {
-        //     class.push(" completed");
-        // }
         log::info!("making the category item");
         html! {
             <li {class}>
@@ -100,7 +95,8 @@ impl PracticePlannerApp {
 
     fn save(&self) -> Result<()> {
         // TODO need to bubble this error up actually
-        LocalStorage::set(KEY, &self.scheduler).expect("able to save");
+        // TODO need to store history and config
+        LocalStorage::set(KEY, &self.scheduler.config).expect("able to save");
         Ok(())
     }
 
@@ -142,7 +138,13 @@ impl Component for PracticePlannerApp {
 
     fn create(_ctx: &Context<Self>) -> Self {
         let mut scheduler = match LocalStorage::get(KEY) {
-            Ok(sp) => sp,
+            Ok(conf) => SchedulePlanner {
+                config: conf,
+                history: BTreeMap::new(),
+                todays_schedule: None,
+                practicing: false,
+                practice_session: None,
+            },
             Err(_e) => SchedulePlanner::new(),
         };
 
@@ -186,15 +188,20 @@ impl Component for PracticePlannerApp {
                     .expect("able to update schedule");
                 self.save().expect("umable to save");
             }
-            Msg::BeginPractice => {
-                self.scheduler
-                    .start_daily_practice()
-                    .expect("failed daily practice");
+            Msg::StopPracticing => {
                 self.scheduler
                     .update_todays_schedule(false)
                     .expect("able to update schedule");
                 // save state
                 self.save().expect("unable to save");
+                self.scheduler
+                    .stop_practicing()
+                    .expect("failed to stop practicing");
+            }
+            Msg::StartPracticing => {
+                self.scheduler
+                    .start_daily_practice()
+                    .expect("failed daily practice");
                 // let status = !self.state.is_all_completed();
                 // self.state.toggle_all(status);
             }
@@ -225,6 +232,10 @@ impl Component for PracticePlannerApp {
         // } else {
         //     ""
         // };
+        if self.scheduler.practicing {
+            log::info!("currently practicing");
+        }
+        let practicing = self.scheduler.practicing;
         let category_list = self
             .scheduler
             .get_todays_schedule()
@@ -255,12 +266,25 @@ impl Component for PracticePlannerApp {
                         <h2 class="category-list">{ "Today's Schedule" }</h2>
                         {self.view_category_list(category_list, ctx.link())}
                             // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
-                        <button class="favorite styled"
-                                type="button"
-                                onclick={ctx.link().callback(|_| Msg::BeginPractice)}
-                                >
-                            { "Begin Practice" }
-                        </button>
+                        { if practicing {
+                            html!{
+                                <button class="favorite styled"
+                                        type="button"
+                                        onclick={ctx.link().callback(|_| Msg::StopPracticing)}
+                                        >
+                                        {"Stop Practicing"}
+                                </button>
+                             }
+                        } else {
+                            html!{
+                                <button class="favorite styled"
+                                        type="button"
+                                        onclick={ctx.link().callback(|_| Msg::StartPracticing)}
+                                        >
+                                        {"Start Practicing"}
+                                </button>
+                            }
+                        }}
                         <button class="favorite styled"
                                 type="button"
                                 onclick={ctx.link().callback(|_| Msg::ResetData)}
