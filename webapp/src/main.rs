@@ -80,6 +80,41 @@ impl PracticePlannerApp {
         }
     }
 
+    fn view_history_list(
+        &self,
+        history_list: BTreeMap<Date<Utc>, HashSet<&PracticeCategory>>,
+        link: &Scope<Self>,
+    ) -> Html {
+        let mut class = Classes::from("todo");
+        // if entry.editing {
+        //     class.push(" editing");
+        // }
+        // if entry.completed {
+        //     class.push(" completed");
+        // }
+        log::info!("making the history list");
+
+        if history_list.is_empty() {
+            return html! {
+                <strong>{ "No history" }</strong>
+            };
+        }
+
+        html! {
+            <ul class="history-list">
+            {
+                for history_list.iter().map(|(day, day_categories)|{
+                    html! { <li><strong>{ day }</strong>{ ": lol" }</li> }
+                })
+            }
+            // html!{    for (day, day_categories) in history_list.iter() {
+            //         <span></span>
+            //     }
+            // }
+            </ul>
+        }
+    }
+
     fn view_category_list(
         &self,
         category_list: &Vec<PracticeCategory>,
@@ -218,6 +253,11 @@ impl Component for PracticePlannerApp {
             .scheduler
             .get_todays_schedule()
             .expect("unable to retrieve today's schedule");
+        // TODO use a constant here
+        let history_list = self
+            .scheduler
+            .get_history_n_days_back(3)
+            .expect("unable to retrieve history");
         html! {
             <div class="todomvc-wrapper">
                 <section class="todoapp">
@@ -226,6 +266,8 @@ impl Component for PracticePlannerApp {
                         // { self.view_input(ctx.link()) }
                     </header>
                     <section class={classes!("main")}>
+                        <h2 class="history-list">{ "Practice History" }</h2>
+                        {self.view_history_list(history_list, ctx.link())}
                         <input
                             type="checkbox"
                             class="toggle-all"
@@ -234,7 +276,7 @@ impl Component for PracticePlannerApp {
                             onclick={ctx.link().callback(|_| Msg::ToggleAll)}
                         />
                         <label for="toggle-all" />
-                        <h2 class="todo-list">{ "Today's Schedule" }</h2>
+                        <h2 class="category-list">{ "Today's Schedule" }</h2>
                         {self.view_category_list(category_list, ctx.link())}
                             // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
                         <button class="favorite styled"
