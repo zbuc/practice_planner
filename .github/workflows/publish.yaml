@@ -54,7 +54,7 @@ jobs:
         run: cd main/webapp && npm install
 
       - name: Build page
-        run: cd main/webapp && trunk build --release
+        run: cd main/webapp && trunk build --release --public-url /practice_planner/
 
       - name: Checkout current pages
         uses: actions/checkout@v2
