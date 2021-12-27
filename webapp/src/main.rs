@@ -1,31 +1,25 @@
 #![recursion_limit = "1024"]
 use chrono::DateTime;
-use chrono::Duration;
-use core::time;
 use std;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
-use std::env::current_dir;
 use std::ops::Sub;
+#[allow(unused_imports)]
 use yew::prelude::*;
 use yew_agent::{Dispatched, Dispatcher};
 
 use anyhow::Result;
 use chrono::{Date, Utc};
 use gloo::storage::{LocalStorage, Storage};
-use gloo::{
-    console::{self, Timer},
-    timers::callback::{Interval, Timeout},
-};
+use gloo::timers::callback::Interval;
 use hhmmss::Hhmmss;
 use log;
 use patternfly_yew::*;
 use pplib::PracticeSession;
-use yew::{classes, html, html::Scope, Classes, Component, Context, Html};
+use yew::{html, html::Scope, Classes, Component, Context, Html};
 
 use crate::components::audio_player::*;
 use crate::components::event_bus::{EventBus, Request};
-use crate::components::icons::*;
 use pplib::{PracticeCategory, SchedulePlanner};
 
 mod components;
@@ -38,14 +32,6 @@ const CONFIG_KEY: &str = "yew.practiceplanner.config";
 const HISTORY_KEY: &str = "yew.practiceplanner.history";
 
 pub enum Msg {
-    Add(String),
-    Edit((usize, String)),
-    Remove(usize),
-    ToggleAll,
-    ToggleEdit(usize),
-    Toggle(usize),
-    ClearCompleted,
-    Focus,
     StartPracticing,
     StopPracticing,
     PracticeTick,
@@ -74,7 +60,7 @@ impl PracticePlannerApp {
         (idx, category): (usize, &PracticeCategory),
         active: u64,
         practicing: bool,
-        link: &Scope<Self>,
+        _link: &Scope<Self>,
     ) -> Html {
         let mut class = Classes::from("todo");
         if practicing && active as usize == idx {
@@ -90,10 +76,9 @@ impl PracticePlannerApp {
                         type="checkbox"
                         class="toggle"
                         checked={practicing && active as usize > idx}
-                        onclick={link.callback(move |_| Msg::Toggle(idx))}
+                        disabled=true
                     />
-                    <label ondblclick={link.callback(move |_| Msg::ToggleEdit(idx))}>{ &category.category_name}</label>
-                    <button class="destroy" onclick={link.callback(move |_| Msg::Remove(idx))} />
+                    <label>{ &category.category_name}</label>
                 </div>
                 // { self.view_entry_edit_input((idx, category), link) }
             </li>
@@ -145,13 +130,6 @@ impl PracticePlannerApp {
         practice_session: &Option<PracticeSession>,
         link: &Scope<Self>,
     ) -> Html {
-        let _class = Classes::from("todo");
-        // if entry.editing {
-        //     class.push(" editing");
-        // }
-        // if entry.completed {
-        //     class.push(" completed");
-        // }
         log::info!("making the category list");
         let active = match practice_session {
             Some(ps) => ps.current_category,
@@ -161,7 +139,7 @@ impl PracticePlannerApp {
 
         html! {
             <>
-            <ul class="todo-list">
+            <ul class="category-list">
             {
                 if self.scheduler.get_todays_schedule().is_some() {
                     log::info!("got a schedule for today");
@@ -214,31 +192,6 @@ impl Component for PracticePlannerApp {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::Add(description) => {
-                if !description.is_empty() {
-                    // let entry = Entry {
-                    //     description: description.trim().to_string(),
-                    //     completed: false,
-                    //     editing: false,
-                    // };
-                    // self.state.entries.push(entry);
-                }
-            }
-            Msg::Edit((_idx, _edit_value)) => {
-                // self.state.complete_edit(idx, edit_value.trim().to_string());
-                // self.state.edit_value = "".to_string();
-            }
-            Msg::Remove(_idx) => {
-                // self.state.remove(idx);
-            }
-            // Msg::SetFilter(filter) => {
-            //     self.state.filter = filter;
-            // }
-            Msg::ToggleEdit(_idx) => {
-                // self.state.edit_value = self.state.entries[idx].description.clone();
-                // self.state.clear_all_edit();
-                // self.state.toggle_edit(idx);
-            }
             Msg::ResetDataPrompt => {
                 // TODO this would be better as a modal probably but there's
                 // no easy way to trigger those in patternfly-yew
@@ -346,33 +299,13 @@ impl Component for PracticePlannerApp {
                 };
                 self.interval = Some(handle);
             }
-            Msg::ToggleAll => {
-                // let status = !self.state.is_all_completed();
-                // self.state.toggle_all(status);
-            }
-            Msg::Toggle(_idx) => {
-                // self.state.toggle(idx);
-            }
-            Msg::ClearCompleted => {
-                // self.state.clear_completed();
-            }
-            Msg::Focus => {
-                // if let Some(input) = self.focus_ref.cast::<InputElement>() {
-                //     input.focus().unwrap();
-                // }
-            }
         }
-        // LocalStorage::set(KEY, &self.state.entries).expect("failed to set");
+
         true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let hidden_class = "hidden";
-        // let hidden_class = if self.state.entries.is_empty() {
-        //     "hidden"
-        // } else {
-        //     ""
-        // };
+        let _hidden_class = "hidden";
         if self.scheduler.practicing {
             log::info!("currently practicing");
         }
@@ -380,7 +313,7 @@ impl Component for PracticePlannerApp {
         let current_time = get_current_time();
         let streak = self.scheduler.get_streak(current_time);
         let practicing = self.scheduler.practicing;
-        let category_list = self.scheduler.get_todays_schedule();
+        let _category_list = self.scheduler.get_todays_schedule();
         // TODO use a constant here
         let history_list = self
             .scheduler
@@ -390,11 +323,10 @@ impl Component for PracticePlannerApp {
             <>
             <ToastViewer/>
             <Bullseye>
-                <header class="header">
-                    <h1>{ "Planner" }</h1>
-                    // { self.view_input(ctx.link()) }
-                </header>
                 <Grid gutter=true>
+                    <GridItem cols={[12]}>
+                        <h1 class="pf-u-text-align-center">{ "Planner" }</h1>
+                    </GridItem>
                     <GridItem cols={[6]} rows={[4]}>
                         <h2 class="history-list">{ "Practice History" }</h2>
                         {self.view_history_list(history_list, ctx.link())}
@@ -440,18 +372,6 @@ impl Component for PracticePlannerApp {
                         </button>
                     </GridItem>
                 </Grid>
-                <footer class={classes!("footer", hidden_class)}>
-                    <span class="todo-count">
-                        // <strong>{ self.state.total() }</strong>
-                        { " item(s) left" }
-                    </span>
-                    <ul class="filters">
-                        // { for Filter::iter().map(|flt| self.view_filter(flt, ctx.link())) }
-                    </ul>
-                    <button class="clear-completed" onclick={ctx.link().callback(|_| Msg::ClearCompleted)}>
-                        // { format!("Clear completed ({})", self.state.total_completed()) }
-                    </button>
-                </footer>
             </Bullseye>
             <AudioPlayer />
             </>
@@ -463,20 +383,4 @@ fn main() {
     wasm_logger::init(wasm_logger::Config::default());
 
     yew::start_app::<PracticePlannerApp>();
-
-    // println!("Today's schedule: {:#?}", todays_schedule);
-    // println!("Want to practice? ");
-    // let line: String = read!("{}\n");
-    // match line.to_lowercase().as_str() {
-    //     "y\r" | "y\n" | "y" => {
-    //         println!("Yeehaw");
-    //         scheduler
-    //             .start_daily_practice()
-    //             .expect("Unable to run daily practice");
-    //     }
-    //     _ => {
-    //         println!("Well, okay then.");
-    //         println!("{}", line);
-    //     }
-    // };
 }

@@ -11,7 +11,6 @@ use std::io::prelude::*;
 use std::ops::Sub;
 
 use anyhow::Result;
-use chrono::Datelike;
 use chrono::{Date, DateTime, Duration, Utc};
 use log;
 use rand::prelude::*;
@@ -157,7 +156,7 @@ impl SchedulePlanner<'_> {
     pub fn get_streak(&self, current_time: DateTime<Utc>) -> usize {
         let mut streak_count = 0;
         let mut next_expected_day = current_time.date().sub(Duration::days(1));
-        for (key, value) in self.history.iter().rev() {
+        for (key, _value) in self.history.iter().rev() {
             // today never counts
             if key.date() == current_time.date() {
                 continue;
