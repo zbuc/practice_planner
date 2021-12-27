@@ -14,7 +14,6 @@ use gloo::storage::{LocalStorage, Storage};
 use gloo::timers::callback::Interval;
 use hhmmss::Hhmmss;
 use log;
-use patternfly_yew::*;
 use pplib::PracticeSession;
 use yew::{html, html::Scope, Classes, Component, Context, Html};
 
@@ -38,6 +37,7 @@ pub enum Msg {
     ResetDataPrompt,
     ResetData,
     ShuffleToday,
+    OpenSettings,
 }
 
 // Splitting this out makes local debugging easier
@@ -192,23 +192,63 @@ impl Component for PracticePlannerApp {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
+            Msg::OpenSettings => {
+                // html! {<><button class="btn btn-default" data-toggle="modal" data-target="#myModal">{"Launch demo modal"}</button>
+                //     <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+                //       <div class="modal-dialog">
+                //         <div class="modal-content">
+                //           <div class="modal-header">
+                //             <button type="button" class="close" data-dismiss="modal" aria-hidden="true" aria-label="Close">
+                //               <span class="pficon pficon-close"></span>
+                //             </button>
+                //             <h4 class="modal-title" id="myModalLabel">{"Modal Title"}</h4>
+                //           </div>
+                //           <div class="modal-body">
+                //             <form class="form-horizontal">
+                //               <div class="form-group">
+                //                 <label class="col-sm-3 control-label" for="textInput">{"Field One"}</label>
+                //                 <div class="col-sm-9">
+                //                   <input type="text" id="textInput" class="form-control"/></div>
+                //               </div>
+                //               <div class="form-group">
+                //                 <label class="col-sm-3 control-label" for="textInput2">{"Field Two"}</label>
+                //                 <div class="col-sm-9">
+                //                   <input type="text" id="textInput2" class="form-control"/></div>
+                //               </div>
+                //               <div class="form-group">
+                //                 <label class="col-sm-3 control-label" for="textInput3">{"Field Three"}</label>
+                //                 <div class="col-sm-9">
+                //                   <input type="text" id="textInput3" class="form-control"/>
+                //                 </div>
+                //               </div>
+                //             </form>
+                //           </div>
+                //           <div class="modal-footer">
+                //             <button type="button" class="btn btn-default" data-dismiss="modal">{"Cancel"}</button>
+                //             <button type="button" class="btn btn-primary">{"Save"}</button>
+                //           </div>
+                //         </div>
+                //       </div>
+                //     </div>
+                // </>}
+            }
             Msg::ResetDataPrompt => {
                 // TODO this would be better as a modal probably but there's
                 // no easy way to trigger those in patternfly-yew
-                let fix = ctx
-                    .link()
-                    .callback(|_| Msg::ResetData)
-                    .into_action("Reset Data");
-                let toast = Toast {
-                    title: "Are you sure?".into(),
-                    r#type: Type::Danger,
-                    body: html! {
-                        <p>{"Are you sure you'd like to reset all your configuration and history?"}</p>
-                    },
-                    actions: vec![fix.clone()],
-                    ..Default::default()
-                };
-                ToastDispatcher::new().toast(toast);
+                // let fix = ctx
+                //     .link()
+                //     .callback(|_| Msg::ResetData)
+                //     .into_action("Reset Data");
+                // let toast = Toast {
+                //     title: "Are you sure?".into(),
+                //     r#type: Type::Danger,
+                //     body: html! {
+                //         <p>{"Are you sure you'd like to reset all your configuration and history?"}</p>
+                //     },
+                //     actions: vec![fix.clone()],
+                //     ..Default::default()
+                // };
+                // ToastDispatcher::new().toast(toast);
             }
             Msg::ResetData => {
                 self.scheduler = SchedulePlanner::new();
@@ -321,14 +361,46 @@ impl Component for PracticePlannerApp {
             .expect("unable to retrieve history");
         html! {
             <>
-            <ToastViewer/>
-            <Bullseye>
-                <Grid gutter=true>
-                    <GridItem cols={[12]}>
-                        <h1 class="pf-u-text-align-center">{ "Planner" }</h1>
-                    </GridItem>
-                    <GridItem cols={[6]} rows={[4]}>
-                        <h2 class="history-list">{ "Practice History" }</h2>
+            <div class="modal">
+                <div class="modal-background"></div>
+                <div class="modal-content">
+                    <article class="message is-danger">
+                        <div class="message-header">
+                            <p>{"Danger"}</p>
+                            <button class="delete" aria-label="delete"></button>
+                        </div>
+                        <div class="message-body">
+                            {"Lorem ipsum dolor sit amet, consectetur adipiscing elit. <strong>Pellentesque risus mi</strong>, tempus quis placerat ut, porta nec nulla. Vestibulum rhoncus ac ex sit amet fringilla. Nullam gravida purus diam, et dictum <a>felis venenatis</a> efficitur. Aenean ac <em>eleifend lacus</em>, in mollis lectus. Donec sodales, arcu et sollicitudin porttitor, tortor urna tempor ligula, id porttitor mi magna a neque. Donec dui urna, vehicula et sem eget, facilisis sodales sem."}
+                        </div>
+                    </article>
+                </div>
+                <button class="modal-close is-large" aria-label="close"></button>
+            </div>
+
+            <section class="hero is-primary">
+                <div class="hero-body">
+                    <p class="title">
+                    {"Planner"}
+                    </p>
+                    // <p class="subtitle">
+                    //   {"Primary subtitle"}
+                    // </p>
+                </div>
+            </section>
+
+            <div class="tile is-ancestor">
+                <div class="tile is-3">
+                </div>
+                <div class="tile is-6 is-vertical is-parent">
+                    <div class="tile is-child box">
+                    <div class="tabs">
+                        <ul>
+                            <li class="is-active"><a>{"Practice"}</a></li>
+                            <li><a>{"History"}</a></li>
+                            <li><a>{"Settings"}</a></li>
+                        </ul>
+                        </div>
+                        <p class="title">{ "Practice History" }</p>
                         {self.view_history_list(history_list, ctx.link())}
                         <p>{ "Streak: " }<strong>{ streak }{ " days" }</strong></p>
                         <button class="favorite styled"
@@ -337,9 +409,14 @@ impl Component for PracticePlannerApp {
                                 >
                             { "Reset History" }
                         </button>
-                    </GridItem>
-                    <GridItem cols={[6]}>
-                        <h2 class="category-list">{ "Today's Schedule" }</h2>
+                    </div>
+                </div>
+                <div class="tile is-3">
+                </div>
+                /*
+                <div class="tile is-4 is-vertical is-parent">
+                    <div class="tile is-child box">
+                        <p class="title">{ "Today's Schedule" }</p>
                         {self.view_category_list(&self.scheduler.practice_session, ctx.link())}
                             // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
                         { if practicing {
@@ -370,9 +447,107 @@ impl Component for PracticePlannerApp {
                                 >
                             { "Shuffle Today's Categories" }
                         </button>
-                    </GridItem>
-                </Grid>
-            </Bullseye>
+                    </div>
+                </div>
+                <div class="tile is-4 is-vertical is-parent">
+                    <div class="tile is-child box">
+                        <p class="title">{ "Settings" }</p>
+                    </div>
+                </div>
+                */
+                    // <GridItem cols={[12]}>
+                    //     <h1 class="pf-u-text-align-center">{ "Planner" }</h1>
+                    // </GridItem>
+                    // <GridItem cols={[6]} rows={[4]}>
+                    //     <h2 class="history-list">{ "Practice History" }</h2>
+                    //     {self.view_history_list(history_list, ctx.link())}
+                    //     <p>{ "Streak: " }<strong>{ streak }{ " days" }</strong></p>
+                    //     <button class="favorite styled"
+                    //             type="button"
+                    //             onclick={ctx.link().callback(|_| Msg::ResetDataPrompt)}
+                    //             >
+                    //         { "Reset History" }
+                    //     </button>
+                    // </GridItem>
+                    // <GridItem cols={[6]}>
+                    //     <h2 class="category-list">{ "Today's Schedule" }</h2>
+                    //     {self.view_category_list(&self.scheduler.practice_session, ctx.link())}
+                    //         // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
+                    //     { if practicing {
+                    //         html!{
+                    //             <>
+                    //             <h3>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</h3>
+                    //             <button class="favorite styled"
+                    //                     type="button"
+                    //                     onclick={ctx.link().callback(|_| Msg::StopPracticing)}
+                    //                     >
+                    //                     {"Stop Practicing"}
+                    //             </button>
+                    //             </>
+                    //         }
+                    //     } else {
+                    //         html!{
+                    //             <button class="favorite styled"
+                    //                     type="button"
+                    //                     onclick={ctx.link().callback(|_| Msg::StartPracticing)}
+                    //                     >
+                    //                     {"Start Practicing"}
+                    //             </button>
+                    //         }
+                    //     }}
+                    //     <button class="favorite styled"
+                    //             type="button"
+                    //             onclick={ctx.link().callback(|_| Msg::ShuffleToday)}
+                    //             >
+                    //         { "Shuffle Today's Categories" }
+                    //     </button>
+                    // </GridItem>
+                    // <GridItem cols={[12]} rows={[4]}>
+                    //     <button class="favorite styled"
+                    //             type="button"
+                    //             onclick={ctx.link().callback(|_| Msg::OpenSettings)}
+                    //             >
+                    //         { "Settings" }
+                    //     </button>
+                    // <button class="btn btn-default" data-toggle="modal" data-target="#myModal">{"Launch demo modal"}</button>
+                    // <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+                    //   <div class="modal-dialog">
+                    //     <div class="modal-content">
+                    //       <div class="modal-header">
+                    //         <button type="button" class="close" data-dismiss="modal" aria-hidden="true" aria-label="Close">
+                    //           <span class="pficon pficon-close"></span>
+                    //         </button>
+                    //         <h4 class="modal-title" id="myModalLabel">{"Modal Title"}</h4>
+                    //       </div>
+                    //       <div class="modal-body">
+                    //         <form class="form-horizontal">
+                    //           <div class="form-group">
+                    //             <label class="col-sm-3 control-label" for="textInput">{"Field One"}</label>
+                    //             <div class="col-sm-9">
+                    //               <input type="text" id="textInput" class="form-control"/></div>
+                    //           </div>
+                    //           <div class="form-group">
+                    //             <label class="col-sm-3 control-label" for="textInput2">{"Field Two"}</label>
+                    //             <div class="col-sm-9">
+                    //               <input type="text" id="textInput2" class="form-control"/></div>
+                    //           </div>
+                    //           <div class="form-group">
+                    //             <label class="col-sm-3 control-label" for="textInput3">{"Field Three"}</label>
+                    //             <div class="col-sm-9">
+                    //               <input type="text" id="textInput3" class="form-control"/>
+                    //             </div>
+                    //           </div>
+                    //         </form>
+                    //       </div>
+                    //       <div class="modal-footer">
+                    //         <button type="button" class="btn btn-default" data-dismiss="modal">{"Cancel"}</button>
+                    //         <button type="button" class="btn btn-primary">{"Save"}</button>
+                    //       </div>
+                    //     </div>
+                    //   </div>
+                    // </div>
+                    // </GridItem>
+            </div>
             <AudioPlayer />
             </>
         }

@@ -156,9 +156,14 @@ impl SchedulePlanner<'_> {
     pub fn get_streak(&self, current_time: DateTime<Utc>) -> usize {
         let mut streak_count = 0;
         let mut next_expected_day = current_time.date().sub(Duration::days(1));
+        let mut counted_today = false;
         for (key, _value) in self.history.iter().rev() {
-            // today never counts
+            // today counts but is not required to be present
             if key.date() == current_time.date() {
+                if !counted_today {
+                    streak_count = streak_count + 1;
+                    counted_today = true;
+                }
                 continue;
             }
 
