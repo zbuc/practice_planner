@@ -1,4 +1,6 @@
 #![recursion_limit = "1024"]
+use chrono::DateTime;
+use chrono::Duration;
 use core::time;
 use std;
 use std::collections::BTreeMap;
@@ -50,6 +52,12 @@ pub enum Msg {
     ResetDataPrompt,
     ResetData,
     ShuffleToday,
+}
+
+// Splitting this out makes local debugging easier
+pub fn get_current_time() -> DateTime<Utc> {
+    // Utc::now().sub(Duration::days(3))
+    Utc::now()
 }
 
 pub struct PracticePlannerApp {
@@ -193,7 +201,7 @@ impl Component for PracticePlannerApp {
             }
         };
 
-        let current_time = Utc::now();
+        let current_time = get_current_time();
         scheduler
             .update_todays_schedule(false, current_time)
             .expect("Unable to update today's schedule");
@@ -251,7 +259,7 @@ impl Component for PracticePlannerApp {
             }
             Msg::ResetData => {
                 self.scheduler = SchedulePlanner::new();
-                let current_time = Utc::now();
+                let current_time = get_current_time();
                 self.scheduler
                     .update_todays_schedule(false, current_time)
                     .expect("able to update schedule");
@@ -259,14 +267,14 @@ impl Component for PracticePlannerApp {
             }
             Msg::ShuffleToday => {
                 if !self.scheduler.practicing {
-                    let current_time = Utc::now();
+                    let current_time = get_current_time();
                     self.scheduler
                         .update_todays_schedule(true, current_time)
                         .expect("able to update schedule");
                 }
             }
             Msg::StopPracticing => {
-                let current_time = Utc::now();
+                let current_time = get_current_time();
                 self.scheduler
                     .update_todays_schedule(false, current_time)
                     .expect("able to update schedule");
@@ -282,7 +290,7 @@ impl Component for PracticePlannerApp {
             Msg::PracticeTick => {
                 log::info!("Tick");
 
-                let now = chrono::Utc::now();
+                let now = get_current_time();
                 let time_elapsed = now.sub(
                     self.scheduler
                         .practice_session
@@ -294,9 +302,8 @@ impl Component for PracticePlannerApp {
 
                 if time_elapsed > total_time {
                     // move to next category
-                    let current_time = Utc::now();
                     self.scheduler
-                        .advance_practice_session(current_time)
+                        .advance_practice_session(now)
                         .expect("unable to advance");
 
                     // play a ding sound
@@ -309,7 +316,7 @@ impl Component for PracticePlannerApp {
                         }
                         self.save().expect("unable to save");
                         self.scheduler
-                            .update_todays_schedule(false, current_time)
+                            .update_todays_schedule(false, now)
                             .expect("unable to update schedule");
                     }
                 }
@@ -321,16 +328,16 @@ impl Component for PracticePlannerApp {
                     .set_time_left(time_left);
             }
             Msg::StartPracticing => {
-                let current_time = Utc::now();
+                let current_time = get_current_time();
                 self.scheduler
                     .start_daily_practice(current_time)
                     .expect("failed daily practice");
-                self.scheduler.practice_session.as_mut().unwrap().start_time = chrono::Utc::now();
+                self.scheduler.practice_session.as_mut().unwrap().start_time = current_time;
                 self.scheduler
                     .practice_session
                     .as_mut()
                     .unwrap()
-                    .category_start_time = chrono::Utc::now();
+                    .category_start_time = current_time;
                 self.scheduler.practice_session.as_mut().unwrap().time_left =
                     self.scheduler.config.category_practice_time;
                 let handle = {
@@ -370,7 +377,7 @@ impl Component for PracticePlannerApp {
             log::info!("currently practicing");
         }
 
-        let current_time = Utc::now();
+        let current_time = get_current_time();
         let practicing = self.scheduler.practicing;
         let category_list = self.scheduler.get_todays_schedule();
         // TODO use a constant here
@@ -387,7 +394,7 @@ impl Component for PracticePlannerApp {
                     // { self.view_input(ctx.link()) }
                 </header>
                 <Grid gutter=true>
-                    <GridItem cols={[6]}>
+                    <GridItem cols={[6]} rows={[4]}>
                         <h2 class="history-list">{ "Practice History" }</h2>
                         {self.view_history_list(history_list, ctx.link())}
                         <input

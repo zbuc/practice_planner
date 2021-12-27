@@ -135,7 +135,7 @@ impl SchedulePlanner<'_> {
             config: PlannerConfiguration {
                 categories_per_day: 4,
                 // category_practice_time: Duration::minutes(15),
-                category_practice_time: Duration::seconds(30),
+                category_practice_time: Duration::seconds(1),
                 category_repeat_days: 2,
                 categories: DEFAULT_CATEGORIES.to_vec(),
             },
