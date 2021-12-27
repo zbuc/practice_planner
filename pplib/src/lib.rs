@@ -8,8 +8,10 @@ use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
+use std::ops::Sub;
 
 use anyhow::Result;
+use chrono::Datelike;
 use chrono::{Date, DateTime, Duration, Utc};
 use log;
 use rand::prelude::*;
@@ -153,7 +155,24 @@ impl SchedulePlanner<'_> {
 
     /// Returns the number of consecutive days of practice prior to today.
     pub fn get_streak(&self, current_time: DateTime<Utc>) -> usize {
-        0
+        let mut streak_count = 0;
+        let mut next_expected_day = current_time.date().sub(Duration::days(1));
+        for (key, value) in self.history.iter().rev() {
+            // today never counts
+            if key.date() == current_time.date() {
+                continue;
+            }
+
+            if key.date() != next_expected_day {
+                log::info!("Streak broken on day: {}", key.date());
+                break;
+            }
+
+            streak_count = streak_count + 1;
+            next_expected_day = next_expected_day.sub(Duration::days(1));
+        }
+
+        streak_count
     }
 
     /// Returns the categories seen in the last n days of history as a HashSet<&PracticeCategory>
@@ -169,9 +188,7 @@ impl SchedulePlanner<'_> {
         let mut historical_categories: BTreeMap<Date<Utc>, HashSet<&PracticeCategory>> =
             BTreeMap::new();
 
-        // TODO keys are sorted so we could shorten iteration here
-        for (key, value) in self.history.iter() {
-            log::info!("key: {}", key);
+        for (key, value) in self.history.iter().rev() {
             // if the history item is within the last n days...
             if key > &n_days_back.unwrap() {
                 for v in value {
@@ -187,6 +204,9 @@ impl SchedulePlanner<'_> {
 
                     day_categories.insert(v);
                 }
+            } else {
+                // since keys are sorted we can break early
+                break;
             }
         }
 

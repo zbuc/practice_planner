@@ -378,6 +378,7 @@ impl Component for PracticePlannerApp {
         }
 
         let current_time = get_current_time();
+        let streak = self.scheduler.get_streak(current_time);
         let practicing = self.scheduler.practicing;
         let category_list = self.scheduler.get_todays_schedule();
         // TODO use a constant here
@@ -397,13 +398,7 @@ impl Component for PracticePlannerApp {
                     <GridItem cols={[6]} rows={[4]}>
                         <h2 class="history-list">{ "Practice History" }</h2>
                         {self.view_history_list(history_list, ctx.link())}
-                        <input
-                            type="checkbox"
-                            class="toggle-all"
-                            id="toggle-all"
-                            // checked={self.state.is_all_completed()}
-                            onclick={ctx.link().callback(|_| Msg::ToggleAll)}
-                        />
+                        <p>{ "Streak: " }<strong>{ streak }{ " days" }</strong></p>
                         <button class="favorite styled"
                                 type="button"
                                 onclick={ctx.link().callback(|_| Msg::ResetDataPrompt)}
