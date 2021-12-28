@@ -50,6 +50,9 @@ lazy_static! {
         PracticeCategory {
             category_name: "Rhythm".to_string(),
         },
+        PracticeCategory {
+            category_name: "Learn A Song".to_string(),
+        },
     ];
 }
 

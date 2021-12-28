@@ -1,24 +1,27 @@
 #![recursion_limit = "1024"]
-use chrono::DateTime;
+#[macro_use]
+extern crate lazy_static;
+
 use std;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
 use std::ops::Sub;
-#[allow(unused_imports)]
-use yew::prelude::*;
-use yew_agent::{Dispatched, Dispatcher};
 
 use anyhow::Result;
-use chrono::{Date, Utc};
+use chrono::{Date, DateTime, Utc};
 use gloo::storage::{LocalStorage, Storage};
 use gloo::timers::callback::Interval;
 use hhmmss::Hhmmss;
 use log;
 use pplib::PracticeSession;
+#[allow(unused_imports)]
+use yew::prelude::*;
 use yew::{html, html::Scope, Classes, Component, Context, Html};
+use yew_agent::{Dispatched, Dispatcher};
 
 use crate::components::audio_player::*;
 use crate::components::event_bus::{EventBus, Request};
+use crate::components::tabs::*;
 use pplib::{PracticeCategory, SchedulePlanner};
 
 mod components;
@@ -393,13 +396,7 @@ impl Component for PracticePlannerApp {
                 </div>
                 <div class="tile is-6 is-vertical is-parent">
                     <div class="tile is-child box">
-                    <div class="tabs">
-                        <ul>
-                            <li class="is-active"><a>{"Practice"}</a></li>
-                            <li><a>{"History"}</a></li>
-                            <li><a>{"Settings"}</a></li>
-                        </ul>
-                        </div>
+                        <TabDisplay/>
                         <p class="title">{ "Practice History" }</p>
                         {self.view_history_list(history_list, ctx.link())}
                         <p>{ "Streak: " }<strong>{ streak }{ " days" }</strong></p>
@@ -413,140 +410,140 @@ impl Component for PracticePlannerApp {
                 </div>
                 <div class="tile is-3">
                 </div>
-                /*
-                <div class="tile is-4 is-vertical is-parent">
-                    <div class="tile is-child box">
-                        <p class="title">{ "Today's Schedule" }</p>
-                        {self.view_category_list(&self.scheduler.practice_session, ctx.link())}
-                            // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
-                        { if practicing {
-                            html!{
-                                <>
-                                <h3>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</h3>
-                                <button class="favorite styled"
-                                        type="button"
-                                        onclick={ctx.link().callback(|_| Msg::StopPracticing)}
-                                        >
-                                        {"Stop Practicing"}
-                                </button>
-                                </>
-                            }
-                        } else {
-                            html!{
-                                <button class="favorite styled"
-                                        type="button"
-                                        onclick={ctx.link().callback(|_| Msg::StartPracticing)}
-                                        >
-                                        {"Start Practicing"}
-                                </button>
-                            }
-                        }}
-                        <button class="favorite styled"
-                                type="button"
-                                onclick={ctx.link().callback(|_| Msg::ShuffleToday)}
-                                >
-                            { "Shuffle Today's Categories" }
-                        </button>
+                    /*
+                    <div class="tile is-4 is-vertical is-parent">
+                        <div class="tile is-child box">
+                            <p class="title">{ "Today's Schedule" }</p>
+                            {self.view_category_list(&self.scheduler.practice_session, ctx.link())}
+                                // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
+                            { if practicing {
+                                html!{
+                                    <>
+                                    <h3>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</h3>
+                                    <button class="favorite styled"
+                                            type="button"
+                                            onclick={ctx.link().callback(|_| Msg::StopPracticing)}
+                                            >
+                                            {"Stop Practicing"}
+                                    </button>
+                                    </>
+                                }
+                            } else {
+                                html!{
+                                    <button class="favorite styled"
+                                            type="button"
+                                            onclick={ctx.link().callback(|_| Msg::StartPracticing)}
+                                            >
+                                            {"Start Practicing"}
+                                    </button>
+                                }
+                            }}
+                            <button class="favorite styled"
+                                    type="button"
+                                    onclick={ctx.link().callback(|_| Msg::ShuffleToday)}
+                                    >
+                                { "Shuffle Today's Categories" }
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div class="tile is-4 is-vertical is-parent">
-                    <div class="tile is-child box">
-                        <p class="title">{ "Settings" }</p>
+                    <div class="tile is-4 is-vertical is-parent">
+                        <div class="tile is-child box">
+                            <p class="title">{ "Settings" }</p>
+                        </div>
                     </div>
-                </div>
-                */
-                    // <GridItem cols={[12]}>
-                    //     <h1 class="pf-u-text-align-center">{ "Planner" }</h1>
-                    // </GridItem>
-                    // <GridItem cols={[6]} rows={[4]}>
-                    //     <h2 class="history-list">{ "Practice History" }</h2>
-                    //     {self.view_history_list(history_list, ctx.link())}
-                    //     <p>{ "Streak: " }<strong>{ streak }{ " days" }</strong></p>
-                    //     <button class="favorite styled"
-                    //             type="button"
-                    //             onclick={ctx.link().callback(|_| Msg::ResetDataPrompt)}
-                    //             >
-                    //         { "Reset History" }
-                    //     </button>
-                    // </GridItem>
-                    // <GridItem cols={[6]}>
-                    //     <h2 class="category-list">{ "Today's Schedule" }</h2>
-                    //     {self.view_category_list(&self.scheduler.practice_session, ctx.link())}
-                    //         // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
-                    //     { if practicing {
-                    //         html!{
-                    //             <>
-                    //             <h3>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</h3>
-                    //             <button class="favorite styled"
-                    //                     type="button"
-                    //                     onclick={ctx.link().callback(|_| Msg::StopPracticing)}
-                    //                     >
-                    //                     {"Stop Practicing"}
-                    //             </button>
-                    //             </>
-                    //         }
-                    //     } else {
-                    //         html!{
-                    //             <button class="favorite styled"
-                    //                     type="button"
-                    //                     onclick={ctx.link().callback(|_| Msg::StartPracticing)}
-                    //                     >
-                    //                     {"Start Practicing"}
-                    //             </button>
-                    //         }
-                    //     }}
-                    //     <button class="favorite styled"
-                    //             type="button"
-                    //             onclick={ctx.link().callback(|_| Msg::ShuffleToday)}
-                    //             >
-                    //         { "Shuffle Today's Categories" }
-                    //     </button>
-                    // </GridItem>
-                    // <GridItem cols={[12]} rows={[4]}>
-                    //     <button class="favorite styled"
-                    //             type="button"
-                    //             onclick={ctx.link().callback(|_| Msg::OpenSettings)}
-                    //             >
-                    //         { "Settings" }
-                    //     </button>
-                    // <button class="btn btn-default" data-toggle="modal" data-target="#myModal">{"Launch demo modal"}</button>
-                    // <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-                    //   <div class="modal-dialog">
-                    //     <div class="modal-content">
-                    //       <div class="modal-header">
-                    //         <button type="button" class="close" data-dismiss="modal" aria-hidden="true" aria-label="Close">
-                    //           <span class="pficon pficon-close"></span>
-                    //         </button>
-                    //         <h4 class="modal-title" id="myModalLabel">{"Modal Title"}</h4>
-                    //       </div>
-                    //       <div class="modal-body">
-                    //         <form class="form-horizontal">
-                    //           <div class="form-group">
-                    //             <label class="col-sm-3 control-label" for="textInput">{"Field One"}</label>
-                    //             <div class="col-sm-9">
-                    //               <input type="text" id="textInput" class="form-control"/></div>
-                    //           </div>
-                    //           <div class="form-group">
-                    //             <label class="col-sm-3 control-label" for="textInput2">{"Field Two"}</label>
-                    //             <div class="col-sm-9">
-                    //               <input type="text" id="textInput2" class="form-control"/></div>
-                    //           </div>
-                    //           <div class="form-group">
-                    //             <label class="col-sm-3 control-label" for="textInput3">{"Field Three"}</label>
-                    //             <div class="col-sm-9">
-                    //               <input type="text" id="textInput3" class="form-control"/>
-                    //             </div>
-                    //           </div>
-                    //         </form>
-                    //       </div>
-                    //       <div class="modal-footer">
-                    //         <button type="button" class="btn btn-default" data-dismiss="modal">{"Cancel"}</button>
-                    //         <button type="button" class="btn btn-primary">{"Save"}</button>
-                    //       </div>
-                    //     </div>
-                    //   </div>
-                    // </div>
-                    // </GridItem>
+                    */
+                        // <GridItem cols={[12]}>
+                        //     <h1 class="pf-u-text-align-center">{ "Planner" }</h1>
+                        // </GridItem>
+                        // <GridItem cols={[6]} rows={[4]}>
+                        //     <h2 class="history-list">{ "Practice History" }</h2>
+                        //     {self.view_history_list(history_list, ctx.link())}
+                        //     <p>{ "Streak: " }<strong>{ streak }{ " days" }</strong></p>
+                        //     <button class="favorite styled"
+                        //             type="button"
+                        //             onclick={ctx.link().callback(|_| Msg::ResetDataPrompt)}
+                        //             >
+                        //         { "Reset History" }
+                        //     </button>
+                        // </GridItem>
+                        // <GridItem cols={[6]}>
+                        //     <h2 class="category-list">{ "Today's Schedule" }</h2>
+                        //     {self.view_category_list(&self.scheduler.practice_session, ctx.link())}
+                        //         // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
+                        //     { if practicing {
+                        //         html!{
+                        //             <>
+                        //             <h3>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</h3>
+                        //             <button class="favorite styled"
+                        //                     type="button"
+                        //                     onclick={ctx.link().callback(|_| Msg::StopPracticing)}
+                        //                     >
+                        //                     {"Stop Practicing"}
+                        //             </button>
+                        //             </>
+                        //         }
+                        //     } else {
+                        //         html!{
+                        //             <button class="favorite styled"
+                        //                     type="button"
+                        //                     onclick={ctx.link().callback(|_| Msg::StartPracticing)}
+                        //                     >
+                        //                     {"Start Practicing"}
+                        //             </button>
+                        //         }
+                        //     }}
+                        //     <button class="favorite styled"
+                        //             type="button"
+                        //             onclick={ctx.link().callback(|_| Msg::ShuffleToday)}
+                        //             >
+                        //         { "Shuffle Today's Categories" }
+                        //     </button>
+                        // </GridItem>
+                        // <GridItem cols={[12]} rows={[4]}>
+                        //     <button class="favorite styled"
+                        //             type="button"
+                        //             onclick={ctx.link().callback(|_| Msg::OpenSettings)}
+                        //             >
+                        //         { "Settings" }
+                        //     </button>
+                        // <button class="btn btn-default" data-toggle="modal" data-target="#myModal">{"Launch demo modal"}</button>
+                        // <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+                        //   <div class="modal-dialog">
+                        //     <div class="modal-content">
+                        //       <div class="modal-header">
+                        //         <button type="button" class="close" data-dismiss="modal" aria-hidden="true" aria-label="Close">
+                        //           <span class="pficon pficon-close"></span>
+                        //         </button>
+                        //         <h4 class="modal-title" id="myModalLabel">{"Modal Title"}</h4>
+                        //       </div>
+                        //       <div class="modal-body">
+                        //         <form class="form-horizontal">
+                        //           <div class="form-group">
+                        //             <label class="col-sm-3 control-label" for="textInput">{"Field One"}</label>
+                        //             <div class="col-sm-9">
+                        //               <input type="text" id="textInput" class="form-control"/></div>
+                        //           </div>
+                        //           <div class="form-group">
+                        //             <label class="col-sm-3 control-label" for="textInput2">{"Field Two"}</label>
+                        //             <div class="col-sm-9">
+                        //               <input type="text" id="textInput2" class="form-control"/></div>
+                        //           </div>
+                        //           <div class="form-group">
+                        //             <label class="col-sm-3 control-label" for="textInput3">{"Field Three"}</label>
+                        //             <div class="col-sm-9">
+                        //               <input type="text" id="textInput3" class="form-control"/>
+                        //             </div>
+                        //           </div>
+                        //         </form>
+                        //       </div>
+                        //       <div class="modal-footer">
+                        //         <button type="button" class="btn btn-default" data-dismiss="modal">{"Cancel"}</button>
+                        //         <button type="button" class="btn btn-primary">{"Save"}</button>
+                        //       </div>
+                        //     </div>
+                        //   </div>
+                        // </div>
+                        // </GridItem>
             </div>
             <AudioPlayer />
             </>
