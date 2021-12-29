@@ -16,7 +16,7 @@ hhmmss = "0.1.0"
 lazy_static = "1.2"
 log = "0.4.14"
 rand = "0.8"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive", "rc"] }
 serde_with = { version = "1.11", features = ["chrono"] }
 text_io = "0.1"
 thiserror = "1.0"
@@ -26,6 +26,10 @@ wasm-logger = "0.2.0"
 wee_alloc = "0.4.5"
 yew = "0.19"
 yew-agent = "0.1"
+# yew = { git = "https://github.com/yewstack/yew.git", branch = "master" }
+# yew-agent = { git = "https://github.com/yewstack/yew.git", branch = "master" }
+# yewdux = { git = "https://github.com/intendednull/yewdux.git", branch = "master" }
+# yewdux = "0.6.2"
 
 [dependencies.web-sys]
 version = "0.3"
