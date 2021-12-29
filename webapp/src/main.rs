@@ -167,20 +167,23 @@ impl PracticePlannerApp {
                 }
             } else {
                 html!{
-                    <button class="favorite styled"
-                            type="button"
-                            onclick={link.callback(|_| Msg::StartPracticing)}
-                            >
-                            {"Start Practicing"}
-                    </button>
+                    <div class="icon-text">
+                        <a title="Start Practicing" onclick={link.callback(|_| Msg::StartPracticing)}>
+                            <span class="icon is-medium has-text-success">
+                                <i class="fas fa-play fa-lg"></i>
+                            </span>
+                        </a>
+                    </div>
                 }
             }}
-            <button class="favorite styled"
-                    type="button"
-                    onclick={link.callback(|_| Msg::ShuffleToday)}
-                    >
-                { "Shuffle Today's Categories" }
-            </button>
+            // TODO put these in a level https://bulma.io/documentation/layout/level/
+            <div class="icon-text">
+                <a title="Shuffle Today's Categories" onclick={link.callback(|_| Msg::ShuffleToday)}>
+                    <span class="icon is-medium has-text-success">
+                        <i class="fas fa-random fa-lg"></i>
+                    </span>
+                </a>
+            </div>
             </>
         }
     }
@@ -374,6 +377,7 @@ impl Component for PracticePlannerApp {
                         .expect("unable to advance");
 
                     // play a ding sound
+                    // TODO this seems overcomplicated maybe just use a callback
                     self.event_bus
                         .send(Request::EventBusMsg("ding.wav".to_owned()));
 
