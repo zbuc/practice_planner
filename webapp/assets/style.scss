@@ -35,3 +35,21 @@ h2 {
 	font-weight: bold;
 	font-size: 150%;
 }
+
+ul.category-list {
+	list-style: none;
+	margin-left: 0;
+	margin-top: 0;
+}
+
+ul.category-list label {
+	margin-left: 1em;
+}
+
+ul.category-list input[type=checkbox] {
+	height: 1.7em;
+	width: 1.7em;
+	margin-top: 20px;
+    position: relative;
+    top: 3px;
+}

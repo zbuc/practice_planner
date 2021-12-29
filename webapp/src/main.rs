@@ -108,6 +108,7 @@ impl PracticePlannerApp {
             };
         }
 
+        // XXX TODO convert to a table view https://bulma.io/documentation/elements/table/
         let hl = history_list
             .iter()
             .map(|(day, day_categories)| {
@@ -248,6 +249,14 @@ impl Component for PracticePlannerApp {
                 // </>}
             }
             Msg::ResetDataPrompt => {
+                // XXX TODO implement again
+                log::info!("Prompt not implemented... resetting data anyways");
+                self.scheduler = SchedulePlanner::new();
+                let current_time = get_current_time();
+                self.scheduler
+                    .update_todays_schedule(false, current_time)
+                    .expect("able to update schedule");
+                self.save().expect("umable to save");
                 // TODO this would be better as a modal probably but there's
                 // no easy way to trigger those in patternfly-yew
                 // let fix = ctx
@@ -363,6 +372,10 @@ impl Component for PracticePlannerApp {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
+        // XXX TODO there is too much recalculation going on in here
+        // we can probably do better
+        // i.e. have today's schedule stored in state and updated in `update` rather than
+        // recalculated every re-render
         let _hidden_class = "hidden";
         if self.scheduler.practicing {
             log::info!("currently practicing");
@@ -414,12 +427,11 @@ impl Component for PracticePlannerApp {
                 <div class="tile is-3">
                 </div>
                 <div class="tile is-6 is-vertical is-parent">
-                    <div class="tile is-child box">
+                    <div class="tile is-child box content is-large">
                         <TabDisplay ..props/>
                         if self.active_tab == 0 {
-                            <p class="title">{ "Today's Schedule" }</p>
+                            // <p class="title">{ "Today's Schedule" }</p>
                             {self.view_category_list(&self.scheduler.practice_session, ctx.link())}
-                                // { for self.state.entries.iter().filter(|e| self.state.filter.fits(e)).enumerate().map(|e| self.view_entry(e, ctx.link())) }
                             { if practicing {
                                 html!{
                                     <>
@@ -449,7 +461,7 @@ impl Component for PracticePlannerApp {
                                 { "Shuffle Today's Categories" }
                             </button>
                         } else if self.active_tab == 1 {
-                            <p class="title">{ "Practice History" }</p>
+                            // <p class="title">{ "Practice History" }</p>
                             {self.view_history_list(history_list, ctx.link())}
                             <p>{ "Streak: " }<strong>{ streak }{ " days" }</strong></p>
                             <button class="favorite styled"
