@@ -63,6 +63,7 @@ pub struct PracticePlannerApp {
     scheduler: SchedulePlanner<'static>,
     interval: Option<Interval>,
     event_bus: Dispatcher<EventBus>,
+    // TODO consider using yewdux for this
     active_tab: usize,
 }
 
@@ -136,6 +137,52 @@ impl PracticePlannerApp {
         LocalStorage::set(CONFIG_KEY, &self.scheduler.config).expect("able to save");
         LocalStorage::set(HISTORY_KEY, &self.scheduler.history).expect("able to save");
         Ok(())
+    }
+
+    fn view_practice_tab(
+        &self,
+        practice_session: &Option<PracticeSession>,
+        link: &Scope<Self>,
+    ) -> Html {
+        let active = match practice_session {
+            Some(ps) => ps.current_category,
+            None => 0,
+        };
+        let practicing = self.scheduler.practicing;
+
+        html! {
+            <>
+            {self.view_category_list(&self.scheduler.practice_session, link)}
+            { if practicing {
+                html!{
+                    <>
+                    <h3>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</h3>
+                    <button class="favorite styled"
+                            type="button"
+                            onclick={link.callback(|_| Msg::StopPracticing)}
+                            >
+                            {"Stop Practicing"}
+                    </button>
+                    </>
+                }
+            } else {
+                html!{
+                    <button class="favorite styled"
+                            type="button"
+                            onclick={link.callback(|_| Msg::StartPracticing)}
+                            >
+                            {"Start Practicing"}
+                    </button>
+                }
+            }}
+            <button class="favorite styled"
+                    type="button"
+                    onclick={link.callback(|_| Msg::ShuffleToday)}
+                    >
+                { "Shuffle Today's Categories" }
+            </button>
+            </>
+        }
     }
 
     fn view_category_list(
@@ -457,53 +504,28 @@ _neat_
             <div class="tile is-ancestor">
                 <div class="tile is-3">
                 </div>
-                <div class="tile is-6 is-vertical is-parent">
-                    <div class="tile is-child box content is-large">
-                        <TabDisplay ..props/>
-                        if self.active_tab == 0 {
-                            // <p class="title">{ "Today's Schedule" }</p>
-                            {self.view_category_list(&self.scheduler.practice_session, ctx.link())}
-                            { if practicing {
-                                html!{
-                                    <>
-                                    <h3>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</h3>
-                                    <button class="favorite styled"
-                                            type="button"
-                                            onclick={ctx.link().callback(|_| Msg::StopPracticing)}
-                                            >
-                                            {"Stop Practicing"}
-                                    </button>
-                                    </>
-                                }
-                            } else {
-                                html!{
-                                    <button class="favorite styled"
-                                            type="button"
-                                            onclick={ctx.link().callback(|_| Msg::StartPracticing)}
-                                            >
-                                            {"Start Practicing"}
-                                    </button>
-                                }
-                            }}
-                            <button class="favorite styled"
-                                    type="button"
-                                    onclick={ctx.link().callback(|_| Msg::ShuffleToday)}
-                                    >
-                                { "Shuffle Today's Categories" }
-                            </button>
-                        } else if self.active_tab == 1 {
-                            // <p class="title">{ "Practice History" }</p>
-                            {self.view_history_list(history_list, ctx.link())}
-                            <p>{ "Streak: " }<strong>{ streak }{ " days" }</strong></p>
-                            <button class="favorite styled"
-                                    type="button"
-                                    onclick={ctx.link().callback(|_| Msg::ResetDataPrompt)}
-                                    >
-                                { "Reset History" }
-                            </button>
-                        } else if self.active_tab == 2 {
-                            {preview}
-                        }
+                <div class="main-content tile is-6 is-vertical box">
+                    <TabDisplay ..props/>
+                    <div class="tile is-parent">
+                    <div class="tile is-child content is-large">
+                    if self.active_tab == 0 {
+                        {self.view_practice_tab(&self.scheduler.practice_session, ctx.link())}
+                    } else if self.active_tab == 1 {
+                        // <p class="title">{ "Practice History" }</p>
+                        {self.view_history_list(history_list, ctx.link())}
+                        <p>{ "Streak: " }<strong>{ streak }{ " days" }</strong></p>
+                        <button class="favorite styled"
+                                type="button"
+                                onclick={ctx.link().callback(|_| Msg::ResetDataPrompt)}
+                                >
+                            { "Reset History" }
+                        </button>
+                    } else if self.active_tab == 2 {
+                    }
+                    </div>
+                    <div class="tile is-child content">
+                    {preview}
+                    </div>
                     </div>
                 </div>
                 <div class="tile is-3">
