@@ -15,8 +15,11 @@ use gloo::timers::callback::Interval;
 use hhmmss::Hhmmss;
 use log;
 use pplib::PracticeSession;
+use pulldown_cmark::{html::push_html, Options, Parser};
+use web_sys::{DocumentFragment, Element, HtmlElement, Node};
 #[allow(unused_imports)]
 use yew::prelude::*;
+use yew::virtual_dom::VNode;
 use yew::{html, html::Scope, Classes, Component, Context, Html};
 use yew_agent::{Dispatched, Dispatcher};
 
@@ -385,6 +388,34 @@ impl Component for PracticePlannerApp {
             on_tab_change: ctx.link().callback(|i: usize| Msg::ChangeTab(i)),
         };
 
+        // TODO split the individual tab contents into their own components
+        let parse_html = parse_markdown_text(
+            "*Wow*
+
+```
+--------------
+
+--------------
+
+--------------
+
+--------------
+
+--------------
+
+--------------
+```
+
+_neat_
+",
+        );
+        let html_text = format!("<div class='preview'>{}</div>", &parse_html);
+        let window = web_sys::window().expect("no global `window` exists");
+        let document = window.document().expect("should have a document on window");
+        let val = document.create_element("div").unwrap();
+        val.set_inner_html(&html_text);
+        let preview = VNode::VRef(val.into());
+
         let current_time = get_current_time();
         let streak = self.scheduler.get_streak(current_time);
         let practicing = self.scheduler.practicing;
@@ -470,8 +501,8 @@ impl Component for PracticePlannerApp {
                                     >
                                 { "Reset History" }
                             </button>
-                        } else if self.active_tab == 3 {
-
+                        } else if self.active_tab == 2 {
+                            {preview}
                         }
                     </div>
                 </div>
@@ -482,6 +513,21 @@ impl Component for PracticePlannerApp {
             </>
         }
     }
+}
+
+// https://github.com/AkifumiSato/yew-markdown-demo
+fn parse_markdown_text(value: &str) -> String {
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_TABLES);
+    options.insert(Options::ENABLE_FOOTNOTES);
+    options.insert(Options::ENABLE_STRIKETHROUGH);
+    options.insert(Options::ENABLE_TASKLISTS);
+
+    let parser = Parser::new_ext(&value, options);
+    let mut parsed_text = String::new();
+    push_html(&mut parsed_text, parser);
+
+    parsed_text
 }
 
 fn main() {
