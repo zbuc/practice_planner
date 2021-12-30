@@ -18,40 +18,266 @@ use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+// TODO look at https://www.vexflow.com/ for notation
+// https://rustwasm.github.io/wasm-bindgen/examples/import-js.html
 lazy_static! {
     pub(crate) static ref DEFAULT_CATEGORIES: Vec<PracticeCategory> = vec![
         PracticeCategory {
             category_name: "Ear Training".to_string(),
+            exercises: vec![
+                PracticeExercise {
+                exercise_name: "Exercise 1".to_string(),
+                exercise_markdown_contents:
+                            "# Ear Training Exercises
+## Exercise #1
+
+Perform one of the exercises from [Justinguitar](https://www.justinguitar.com/guitar-lessons/justin-ear-training-exercises-s1-bc-118).
+
+".to_string(),
+
+            },
+            PracticeExercise {
+                exercise_name: "Exercise 2".to_string(),
+                exercise_markdown_contents:
+                            "# Ear Training Exercises
+## Exercise #2
+
+Play random two-note dyads and try to identify the intervals by sound.
+
+".to_string(),
+
+            },
+            ]
         },
         PracticeCategory {
             category_name: "Right-Hand Exercises".to_string(),
+            exercises: vec![PracticeExercise {
+                exercise_name: "Exercise 1".to_string(),
+                exercise_markdown_contents:
+                            "# Right Hand Exercises
+## Exercise #1
+
+Practice the following strumming pattern, starting at a lower tempo.
+
+```
+-----------------------------------------1-2-3-4-----------------------------------------
+---------------------------------1-2-3-4---------1-2-3-4---------------------------------
+-------------------------1-2-3-4-------------------------1-2-3-4-------------------------
+-----------------1-2-3-4-----------------------------------------1-2-3-4-----------------
+---------1-2-3-4---------------------------------------------------------1-2-3-4---------
+-1-2-3-4-------------------------------------------------------------------------1-2-3-4-
+```
+
+".to_string(),
+
+            }]
         },
         PracticeCategory {
             category_name: "Left-Hand Exercises".to_string(),
+            exercises: vec![PracticeExercise {
+                exercise_name: "Exercise 1".to_string(),
+                exercise_markdown_contents:
+                            "# Left Hand Exercises
+## Exercise #1
+
+Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+
+```
+-----------------------------------------1-2-3-4-----------------------------------------
+---------------------------------1-2-3-4---------1-2-3-4---------------------------------
+-------------------------1-2-3-4-------------------------1-2-3-4-------------------------
+-----------------1-2-3-4-----------------------------------------1-2-3-4-----------------
+---------1-2-3-4---------------------------------------------------------1-2-3-4---------
+-1-2-3-4-------------------------------------------------------------------------1-2-3-4-
+```
+
+".to_string(),
+
+            }]
         },
         PracticeCategory {
             category_name: "Chords".to_string(),
+            exercises: vec![PracticeExercise {
+                exercise_name: "Exercise 1".to_string(),
+                exercise_markdown_contents:
+                            "# Left Hand Exercises
+## Exercise #1
+
+Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+
+```
+-----------------------------------------1-2-3-4-----------------------------------------
+---------------------------------1-2-3-4---------1-2-3-4---------------------------------
+-------------------------1-2-3-4-------------------------1-2-3-4-------------------------
+-----------------1-2-3-4-----------------------------------------1-2-3-4-----------------
+---------1-2-3-4---------------------------------------------------------1-2-3-4---------
+-1-2-3-4-------------------------------------------------------------------------1-2-3-4-
+```
+
+".to_string(),
+
+            }]
         },
         PracticeCategory {
             category_name: "Scales".to_string(),
+            exercises: vec![PracticeExercise {
+                exercise_name: "Exercise 1".to_string(),
+                exercise_markdown_contents:
+                            "# Left Hand Exercises
+## Exercise #1
+
+Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+
+```
+-----------------------------------------1-2-3-4-----------------------------------------
+---------------------------------1-2-3-4---------1-2-3-4---------------------------------
+-------------------------1-2-3-4-------------------------1-2-3-4-------------------------
+-----------------1-2-3-4-----------------------------------------1-2-3-4-----------------
+---------1-2-3-4---------------------------------------------------------1-2-3-4---------
+-1-2-3-4-------------------------------------------------------------------------1-2-3-4-
+```
+
+".to_string(),
+
+            }]
         },
         PracticeCategory {
             category_name: "Sight Reading".to_string(),
+            exercises: vec![PracticeExercise {
+                exercise_name: "Exercise 1".to_string(),
+                exercise_markdown_contents:
+                            "# Left Hand Exercises
+## Exercise #1
+
+Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+
+```
+-----------------------------------------1-2-3-4-----------------------------------------
+---------------------------------1-2-3-4---------1-2-3-4---------------------------------
+-------------------------1-2-3-4-------------------------1-2-3-4-------------------------
+-----------------1-2-3-4-----------------------------------------1-2-3-4-----------------
+---------1-2-3-4---------------------------------------------------------1-2-3-4---------
+-1-2-3-4-------------------------------------------------------------------------1-2-3-4-
+```
+
+".to_string(),
+
+            }]
         },
         PracticeCategory {
             category_name: "Music Theory".to_string(),
+            exercises: vec![PracticeExercise {
+                exercise_name: "Exercise 1".to_string(),
+                exercise_markdown_contents:
+                            "# Left Hand Exercises
+## Exercise #1
+
+Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+
+```
+-----------------------------------------1-2-3-4-----------------------------------------
+---------------------------------1-2-3-4---------1-2-3-4---------------------------------
+-------------------------1-2-3-4-------------------------1-2-3-4-------------------------
+-----------------1-2-3-4-----------------------------------------1-2-3-4-----------------
+---------1-2-3-4---------------------------------------------------------1-2-3-4---------
+-1-2-3-4-------------------------------------------------------------------------1-2-3-4-
+```
+
+".to_string(),
+
+            }]
         },
         PracticeCategory {
             category_name: "Improvisation".to_string(),
+            exercises: vec![PracticeExercise {
+                exercise_name: "Exercise 1".to_string(),
+                exercise_markdown_contents:
+                            "# Left Hand Exercises
+## Exercise #1
+
+Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+
+```
+-----------------------------------------1-2-3-4-----------------------------------------
+---------------------------------1-2-3-4---------1-2-3-4---------------------------------
+-------------------------1-2-3-4-------------------------1-2-3-4-------------------------
+-----------------1-2-3-4-----------------------------------------1-2-3-4-----------------
+---------1-2-3-4---------------------------------------------------------1-2-3-4---------
+-1-2-3-4-------------------------------------------------------------------------1-2-3-4-
+```
+
+".to_string(),
+
+            }]
         },
         PracticeCategory {
             category_name: "Songwriting".to_string(),
+            exercises: vec![PracticeExercise {
+                exercise_name: "Exercise 1".to_string(),
+                exercise_markdown_contents:
+                            "# Left Hand Exercises
+## Exercise #1
+
+Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+
+```
+-----------------------------------------1-2-3-4-----------------------------------------
+---------------------------------1-2-3-4---------1-2-3-4---------------------------------
+-------------------------1-2-3-4-------------------------1-2-3-4-------------------------
+-----------------1-2-3-4-----------------------------------------1-2-3-4-----------------
+---------1-2-3-4---------------------------------------------------------1-2-3-4---------
+-1-2-3-4-------------------------------------------------------------------------1-2-3-4-
+```
+
+".to_string(),
+
+            }]
         },
         PracticeCategory {
             category_name: "Rhythm".to_string(),
+            exercises: vec![PracticeExercise {
+                exercise_name: "Exercise 1".to_string(),
+                exercise_markdown_contents:
+                            "# Left Hand Exercises
+## Exercise #1
+
+Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+
+```
+-----------------------------------------1-2-3-4-----------------------------------------
+---------------------------------1-2-3-4---------1-2-3-4---------------------------------
+-------------------------1-2-3-4-------------------------1-2-3-4-------------------------
+-----------------1-2-3-4-----------------------------------------1-2-3-4-----------------
+---------1-2-3-4---------------------------------------------------------1-2-3-4---------
+-1-2-3-4-------------------------------------------------------------------------1-2-3-4-
+```
+
+".to_string(),
+
+            }]
         },
         PracticeCategory {
             category_name: "Learn A Song".to_string(),
+            exercises: vec![PracticeExercise {
+                exercise_name: "Exercise 1".to_string(),
+                exercise_markdown_contents:
+                            "# Left Hand Exercises
+## Exercise #1
+
+Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+
+```
+-----------------------------------------1-2-3-4-----------------------------------------
+---------------------------------1-2-3-4---------1-2-3-4---------------------------------
+-------------------------1-2-3-4-------------------------1-2-3-4-------------------------
+-----------------1-2-3-4-----------------------------------------1-2-3-4-----------------
+---------1-2-3-4---------------------------------------------------------1-2-3-4---------
+-1-2-3-4-------------------------------------------------------------------------1-2-3-4-
+```
+
+".to_string(),
+
+            }]
         },
     ];
 }
@@ -70,14 +296,16 @@ pub enum SchedulerError {
     Other(#[from] anyhow::Error), // source and Display delegate to anyhow::Error
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
-pub struct PracticeSkill {
-    pub skill_name: String,
+#[derive(Serialize, Deserialize, Clone, Hash, PartialOrd, Ord, PartialEq, Eq, Debug)]
+pub struct PracticeExercise {
+    pub exercise_name: String,
+    pub exercise_markdown_contents: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Hash, PartialOrd, Ord, PartialEq, Eq, Debug)]
 pub struct PracticeCategory {
     pub category_name: String,
+    pub exercises: Vec<PracticeExercise>,
 }
 
 impl fmt::Display for PracticeCategory {
@@ -132,10 +360,7 @@ impl<'a> PracticeSession<'a> {
 
 impl SchedulePlanner<'_> {
     pub fn new() -> Self {
-        // Call this here so it's cached and faster later
-        // let (_stream, _stream_handle) = OutputStream::try_default().unwrap();
         SchedulePlanner {
-            //category_practice_time: Duration::minutes(15),
             config: PlannerConfiguration {
                 categories_per_day: 4,
                 // category_practice_time: Duration::minutes(15),
@@ -230,6 +455,10 @@ impl SchedulePlanner<'_> {
         }
 
         seen_days.len()
+    }
+
+    pub fn reset_history(&mut self) {
+        self.history = BTreeMap::new();
     }
 
     pub fn update_todays_schedule(

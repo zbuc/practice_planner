@@ -1,7 +1,5 @@
-use std::rc::Rc;
-
 use yew::prelude::*;
-use yew::{function_component, html, use_state};
+use yew::{function_component, html};
 
 #[derive(Default, Properties, PartialEq, Clone)]
 pub struct ModalDisplayProps {

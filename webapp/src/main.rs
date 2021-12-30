@@ -40,8 +40,8 @@ pub enum Msg {
     StartPracticing,
     StopPracticing,
     PracticeTick,
-    ResetDataPrompt,
-    ResetData,
+    ResetHistoryPrompt,
+    ResetHistory,
     ShuffleToday,
     ChangeTab(usize),
     CloseModal,
@@ -266,14 +266,25 @@ impl Component for PracticePlannerApp {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::ResetDataPrompt => {
+            Msg::ResetHistoryPrompt => {
                 self.displaying_modal = true;
                 self.modal_closed = false;
                 self.modal_content = html! {
                     <div>
                     <h1>{"Are you sure?"}</h1>
-                    <p>{"Are you sure you'd like to reset all your configuration and history?"}</p>
-                    <button class="delete" title="Reset"/>
+                    <p>{"Are you sure you'd like to reset your history?"}</p>
+                    <div>
+                        <div class="icon-text">
+                            <a title="Reset History" onclick={ctx.link().callback(|_| Msg::ResetHistory)}>
+                                <span class="icon is-medium">
+                                    <i class="fas fa-trash fa-lg"></i>
+                                </span>
+                            </a>
+                        </div>
+                        <a title="Reset History" onclick={ctx.link().callback(|_| Msg::ResetHistory)}>
+                        {"Reset History"}
+                        </a>
+                        </div>
                     </div>
                 };
                 // XXX TODO implement again
@@ -301,8 +312,9 @@ impl Component for PracticePlannerApp {
                 // };
                 // ToastDispatcher::new().toast(toast);
             }
-            Msg::ResetData => {
-                self.scheduler = SchedulePlanner::new();
+            Msg::ResetHistory => {
+                // self.scheduler = SchedulePlanner::new();
+                self.scheduler.reset_history();
                 let current_time = get_current_time();
                 self.scheduler
                     .update_todays_schedule(false, current_time)
@@ -490,7 +502,7 @@ Practice the following pattern starting at every fret from 1 to 12, starting at 
                         <p>{ "Streak: " }<strong>{ streak }{ " days" }</strong></p>
                         <button class="favorite styled"
                                 type="button"
-                                onclick={ctx.link().callback(|_| Msg::ResetDataPrompt)}
+                                onclick={ctx.link().callback(|_| Msg::ResetHistoryPrompt)}
                                 >
                             { "Reset History" }
                         </button>
