@@ -6,7 +6,6 @@ extern crate lazy_static;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
 use std::ops::Sub;
-use std::rc::Rc;
 
 use anyhow::Result;
 use chrono::{Date, DateTime, Utc};
@@ -16,7 +15,6 @@ use hhmmss::Hhmmss;
 use log;
 use pplib::PracticeSession;
 use pulldown_cmark::{html::push_html, Options, Parser};
-use web_sys::{DocumentFragment, Element, HtmlElement, Node};
 #[allow(unused_imports)]
 use yew::prelude::*;
 use yew::virtual_dom::VNode;
@@ -36,11 +34,6 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 const CONFIG_KEY: &str = "yew.practiceplanner.config";
 const HISTORY_KEY: &str = "yew.practiceplanner.history";
-
-#[derive(Clone, Default)]
-pub struct TabState {
-    active_tab: usize,
-}
 
 pub enum Msg {
     StartPracticing,
@@ -141,13 +134,9 @@ impl PracticePlannerApp {
 
     fn view_practice_tab(
         &self,
-        practice_session: &Option<PracticeSession>,
+        _practice_session: &Option<PracticeSession>,
         link: &Scope<Self>,
     ) -> Html {
-        let active = match practice_session {
-            Some(ps) => ps.current_category,
-            None => 0,
-        };
         let practicing = self.scheduler.practicing;
 
         html! {
@@ -240,7 +229,7 @@ impl Component for PracticePlannerApp {
     type Message = Msg;
     type Properties = TabDisplayProps;
 
-    fn create(ctx: &Context<Self>) -> Self {
+    fn create(_ctx: &Context<Self>) -> Self {
         let config = LocalStorage::get(CONFIG_KEY);
         let history = LocalStorage::get(HISTORY_KEY);
         let mut scheduler = match config {
@@ -455,24 +444,19 @@ impl Component for PracticePlannerApp {
         // TODO split the individual tab contents into their own components
         let parse_html = parse_markdown_text(
             "# Left Hand Exercises
+## Exercise #1
 
 Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
 
 ```
 -----------------------------------------1-2-3-4-----------------------------------------
-
 ---------------------------------1-2-3-4---------1-2-3-4---------------------------------
-
 -------------------------1-2-3-4-------------------------1-2-3-4-------------------------
-
 -----------------1-2-3-4-----------------------------------------1-2-3-4-----------------
-
 ---------1-2-3-4---------------------------------------------------------1-2-3-4---------
-
 -1-2-3-4-------------------------------------------------------------------------1-2-3-4-
 ```
 
-_neat_
 ",
         );
         let html_text = format!("<div class='preview'>{}</div>", &parse_html);
@@ -484,7 +468,6 @@ _neat_
 
         let current_time = get_current_time();
         let streak = self.scheduler.get_streak(current_time);
-        let practicing = self.scheduler.practicing;
         let _category_list = self.scheduler.get_todays_schedule();
         // TODO use a constant here
         let history_list = self
@@ -542,36 +525,40 @@ _neat_
                     } else if self.active_tab == 2 {
                     }
                     </div>
-                    <div class="tile is-child content app-panel">
-                    {preview}
+                    // this should only show on the practice tab
+                    if self.active_tab == 0 {
 
-                    <nav class="level content is-large">
-                        // Left side
-                        <div class="level-left">
-                            <div class="level-item">
-                                <div class="icon-text">
-                                    <a title="Previous Exercise" onclick={ctx.link().callback(|_| Msg::ShuffleToday)}>
-                                        <span class="icon is-medium has-text-success">
-                                            <i class="fas fa-long-arrow-alt-left fa-lg"></i>
-                                        </span>
-                                    </a>
+                    <div class="tile is-child content app-panel">
+                        {preview}
+
+                        <nav class="level content is-large">
+                            // Left side
+                            <div class="level-left">
+                                <div class="level-item">
+                                    <div class="icon-text">
+                                        <a title="Previous Exercise" onclick={ctx.link().callback(|_| Msg::ShuffleToday)}>
+                                            <span class="icon is-medium has-text-success">
+                                                <i class="fas fa-long-arrow-alt-left fa-lg"></i>
+                                            </span>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="level-right">
-                            <div class="level-item">
-                                <div class="icon-text">
-                                    <a title="Next Exercise" onclick={ctx.link().callback(|_| Msg::ShuffleToday)}>
-                                        <span class="icon is-medium has-text-success">
-                                            <i class="fas fa-long-arrow-alt-right fa-lg"></i>
-                                        </span>
-                                    </a>
+                            <div class="level-right">
+                                <div class="level-item">
+                                    <div class="icon-text">
+                                        <a title="Next Exercise" onclick={ctx.link().callback(|_| Msg::ShuffleToday)}>
+                                            <span class="icon is-medium has-text-success">
+                                                <i class="fas fa-long-arrow-alt-right fa-lg"></i>
+                                            </span>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </nav>
+                        </nav>
 
                     </div>
+                    }
                     </div>
                 </div>
                 <div class="tile is-3">
