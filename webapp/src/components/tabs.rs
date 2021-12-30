@@ -1,7 +1,10 @@
 use yew::prelude::*;
 use yew::{function_component, html, use_state};
 
-use crate::TabDisplayProps;
+#[derive(Default, Properties, PartialEq, Clone)]
+pub struct TabDisplayProps {
+    pub on_tab_change: Callback<usize>,
+}
 
 // Consider using something like Strum here
 // so it can be ensured the tab is always

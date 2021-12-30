@@ -23,6 +23,7 @@ use yew_agent::{Dispatched, Dispatcher};
 
 use crate::components::audio_player::*;
 use crate::components::event_bus::{EventBus, Request};
+use crate::components::modal::*;
 use crate::components::tabs::*;
 use pplib::{PracticeCategory, SchedulePlanner};
 
@@ -42,8 +43,9 @@ pub enum Msg {
     ResetDataPrompt,
     ResetData,
     ShuffleToday,
-    OpenSettings,
     ChangeTab(usize),
+    CloseModal,
+    OpenModal,
 }
 
 // Splitting this out makes local debugging easier
@@ -56,8 +58,11 @@ pub struct PracticePlannerApp {
     scheduler: SchedulePlanner<'static>,
     interval: Option<Interval>,
     event_bus: Dispatcher<EventBus>,
-    // TODO consider using yewdux for this
+    // TODO consider using yewdux for all this
     active_tab: usize,
+    modal_closed: bool,
+    displaying_modal: bool,
+    modal_content: Html,
 }
 
 impl PracticePlannerApp {
@@ -220,11 +225,6 @@ impl PracticePlannerApp {
     }
 }
 
-#[derive(Default, Properties, PartialEq, Clone)]
-pub struct TabDisplayProps {
-    pub on_tab_change: Callback<usize>,
-}
-
 impl Component for PracticePlannerApp {
     type Message = Msg;
     type Properties = TabDisplayProps;
@@ -258,60 +258,32 @@ impl Component for PracticePlannerApp {
             interval: None,
             event_bus: EventBus::dispatcher(),
             active_tab: 0,
+            modal_closed: false,
+            displaying_modal: false,
+            modal_content: html! {},
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::OpenSettings => {
-                // html! {<><button class="btn btn-default" data-toggle="modal" data-target="#myModal">{"Launch demo modal"}</button>
-                //     <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-                //       <div class="modal-dialog">
-                //         <div class="modal-content">
-                //           <div class="modal-header">
-                //             <button type="button" class="close" data-dismiss="modal" aria-hidden="true" aria-label="Close">
-                //               <span class="pficon pficon-close"></span>
-                //             </button>
-                //             <h4 class="modal-title" id="myModalLabel">{"Modal Title"}</h4>
-                //           </div>
-                //           <div class="modal-body">
-                //             <form class="form-horizontal">
-                //               <div class="form-group">
-                //                 <label class="col-sm-3 control-label" for="textInput">{"Field One"}</label>
-                //                 <div class="col-sm-9">
-                //                   <input type="text" id="textInput" class="form-control"/></div>
-                //               </div>
-                //               <div class="form-group">
-                //                 <label class="col-sm-3 control-label" for="textInput2">{"Field Two"}</label>
-                //                 <div class="col-sm-9">
-                //                   <input type="text" id="textInput2" class="form-control"/></div>
-                //               </div>
-                //               <div class="form-group">
-                //                 <label class="col-sm-3 control-label" for="textInput3">{"Field Three"}</label>
-                //                 <div class="col-sm-9">
-                //                   <input type="text" id="textInput3" class="form-control"/>
-                //                 </div>
-                //               </div>
-                //             </form>
-                //           </div>
-                //           <div class="modal-footer">
-                //             <button type="button" class="btn btn-default" data-dismiss="modal">{"Cancel"}</button>
-                //             <button type="button" class="btn btn-primary">{"Save"}</button>
-                //           </div>
-                //         </div>
-                //       </div>
-                //     </div>
-                // </>}
-            }
             Msg::ResetDataPrompt => {
+                self.displaying_modal = true;
+                self.modal_closed = false;
+                self.modal_content = html! {
+                    <div>
+                    <h1>{"Are you sure?"}</h1>
+                    <p>{"Are you sure you'd like to reset all your configuration and history?"}</p>
+                    <button class="delete" title="Reset"/>
+                    </div>
+                };
                 // XXX TODO implement again
-                log::info!("Prompt not implemented... resetting data anyways");
-                self.scheduler = SchedulePlanner::new();
-                let current_time = get_current_time();
-                self.scheduler
-                    .update_todays_schedule(false, current_time)
-                    .expect("able to update schedule");
-                self.save().expect("umable to save");
+                // log::info!("Prompt not implemented... resetting data anyways");
+                // self.scheduler = SchedulePlanner::new();
+                // let current_time = get_current_time();
+                // self.scheduler
+                //     .update_todays_schedule(false, current_time)
+                //     .expect("able to update schedule");
+                // self.save().expect("umable to save");
                 // TODO this would be better as a modal probably but there's
                 // no easy way to trigger those in patternfly-yew
                 // let fix = ctx
@@ -422,6 +394,14 @@ impl Component for PracticePlannerApp {
             Msg::ChangeTab(i) => {
                 self.active_tab = i;
             }
+            Msg::CloseModal => {
+                log::info!("Close modal");
+                self.modal_closed = true;
+            }
+            Msg::OpenModal => {
+                self.modal_closed = false;
+                self.displaying_modal = true;
+            }
         }
 
         true
@@ -439,6 +419,12 @@ impl Component for PracticePlannerApp {
 
         let props = TabDisplayProps {
             on_tab_change: ctx.link().callback(|i: usize| Msg::ChangeTab(i)),
+        };
+        let modal_props = ModalDisplayProps {
+            modal_type: "warning".to_string(),
+            content: self.modal_content.clone(),
+            active: self.displaying_modal && !self.modal_closed,
+            on_close_modal: ctx.link().callback(|_: usize| Msg::CloseModal),
         };
 
         // TODO split the individual tab contents into their own components
@@ -476,21 +462,7 @@ Practice the following pattern starting at every fret from 1 to 12, starting at 
             .expect("unable to retrieve history");
         html! {
             <>
-            <div class="modal">
-                <div class="modal-background"></div>
-                <div class="modal-content">
-                    <article class="message is-danger">
-                        <div class="message-header">
-                            <p>{"Danger"}</p>
-                            <button class="delete" aria-label="delete"></button>
-                        </div>
-                        <div class="message-body">
-                            {"Lorem ipsum dolor sit amet, consectetur adipiscing elit. <strong>Pellentesque risus mi</strong>, tempus quis placerat ut, porta nec nulla. Vestibulum rhoncus ac ex sit amet fringilla. Nullam gravida purus diam, et dictum <a>felis venenatis</a> efficitur. Aenean ac <em>eleifend lacus</em>, in mollis lectus. Donec sodales, arcu et sollicitudin porttitor, tortor urna tempor ligula, id porttitor mi magna a neque. Donec dui urna, vehicula et sem eget, facilisis sodales sem."}
-                        </div>
-                    </article>
-                </div>
-                <button class="modal-close is-large" aria-label="close"></button>
-            </div>
+            <ModalDisplay ..modal_props/>
 
             <section class="hero is-primary">
                 <div class="hero-body">
