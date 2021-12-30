@@ -57,3 +57,20 @@ ul.category-list input[type=checkbox] {
 div.main-content {
 	margin-top: 2.2em;
 }
+
+html,
+body {
+    min-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+nav.level {
+	position: absolute;
+	bottom: 0;
+	width: 100%;
+}
+
+.app-panel {
+	position: relative;
+}

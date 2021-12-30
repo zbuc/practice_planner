@@ -153,37 +153,50 @@ impl PracticePlannerApp {
         html! {
             <>
             {self.view_category_list(&self.scheduler.practice_session, link)}
-            { if practicing {
-                html!{
-                    <>
-                    <h3>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</h3>
-                    <button class="favorite styled"
-                            type="button"
-                            onclick={link.callback(|_| Msg::StopPracticing)}
-                            >
-                            {"Stop Practicing"}
-                    </button>
-                    </>
-                }
-            } else {
-                html!{
-                    <div class="icon-text">
-                        <a title="Start Practicing" onclick={link.callback(|_| Msg::StartPracticing)}>
-                            <span class="icon is-medium has-text-success">
-                                <i class="fas fa-play fa-lg"></i>
-                            </span>
-                        </a>
+            <nav class="level">
+                // Left side
+                <div class="level-left">
+                    { if practicing {
+                        html!{
+                            <>
+                            <div class="level-item">
+                                <h3>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</h3>
+                                <button class="favorite styled"
+                                        type="button"
+                                        onclick={link.callback(|_| Msg::StopPracticing)}
+                                        >
+                                        {"Stop Practicing"}
+                                </button>
+                            </div>
+                            </>
+                        }
+                    } else {
+                        html!{
+                            <div class="level-item">
+                                <div class="icon-text">
+                                    <a title="Start Practicing" onclick={link.callback(|_| Msg::StartPracticing)}>
+                                        <span class="icon is-medium has-text-success">
+                                            <i class="fas fa-play fa-lg"></i>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    }}
+                </div>
+                // Right side
+                <div class="level-right">
+                    <div class="level-item">
+                        <div class="icon-text">
+                            <a title="Shuffle Today's Categories" onclick={link.callback(|_| Msg::ShuffleToday)}>
+                                <span class="icon is-medium has-text-success">
+                                    <i class="fas fa-random fa-lg"></i>
+                                </span>
+                            </a>
+                        </div>
                     </div>
-                }
-            }}
-            // TODO put these in a level https://bulma.io/documentation/layout/level/
-            <div class="icon-text">
-                <a title="Shuffle Today's Categories" onclick={link.callback(|_| Msg::ShuffleToday)}>
-                    <span class="icon is-medium has-text-success">
-                        <i class="fas fa-random fa-lg"></i>
-                    </span>
-                </a>
-            </div>
+                </div>
+            </nav>
             </>
         }
     }
@@ -441,20 +454,22 @@ impl Component for PracticePlannerApp {
 
         // TODO split the individual tab contents into their own components
         let parse_html = parse_markdown_text(
-            "*Wow*
+            "# Left Hand Exercises
+
+Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
 
 ```
---------------
+-----------------------------------------1-2-3-4-----------------------------------------
 
---------------
+---------------------------------1-2-3-4---------1-2-3-4---------------------------------
 
---------------
+-------------------------1-2-3-4-------------------------1-2-3-4-------------------------
 
---------------
+-----------------1-2-3-4-----------------------------------------1-2-3-4-----------------
 
---------------
+---------1-2-3-4---------------------------------------------------------1-2-3-4---------
 
---------------
+-1-2-3-4-------------------------------------------------------------------------1-2-3-4-
 ```
 
 _neat_
@@ -511,7 +526,7 @@ _neat_
                 <div class="main-content tile is-6 is-vertical box">
                     <TabDisplay ..props/>
                     <div class="tile is-parent">
-                    <div class="tile is-child content is-large">
+                    <div class="tile is-child content is-large is-vertical app-panel">
                     if self.active_tab == 0 {
                         {self.view_practice_tab(&self.scheduler.practice_session, ctx.link())}
                     } else if self.active_tab == 1 {
@@ -527,8 +542,35 @@ _neat_
                     } else if self.active_tab == 2 {
                     }
                     </div>
-                    <div class="tile is-child content">
+                    <div class="tile is-child content app-panel">
                     {preview}
+
+                    <nav class="level content is-large">
+                        // Left side
+                        <div class="level-left">
+                            <div class="level-item">
+                                <div class="icon-text">
+                                    <a title="Previous Exercise" onclick={ctx.link().callback(|_| Msg::ShuffleToday)}>
+                                        <span class="icon is-medium has-text-success">
+                                            <i class="fas fa-long-arrow-alt-left fa-lg"></i>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="level-right">
+                            <div class="level-item">
+                                <div class="icon-text">
+                                    <a title="Next Exercise" onclick={ctx.link().callback(|_| Msg::ShuffleToday)}>
+                                        <span class="icon is-medium has-text-success">
+                                            <i class="fas fa-long-arrow-alt-right fa-lg"></i>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
                     </div>
                     </div>
                 </div>
