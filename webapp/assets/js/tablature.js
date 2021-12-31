@@ -1,7 +1,7 @@
 export function create_tab() {
     console.log(vextab);
     console.log(vextab.default);
-    new vextab.default(".vextab-auto");
+    console.log(new vextab.default(".vextab-auto"));
 }
 
 // export class TabulatureBindings {
