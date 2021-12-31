@@ -21,12 +21,14 @@ use yew::virtual_dom::VNode;
 use yew::{html, html::Scope, Classes, Component, Context, Html};
 use yew_agent::{Dispatched, Dispatcher};
 
+use crate::bindings::tablature::*;
 use crate::components::audio_player::*;
 use crate::components::event_bus::{EventBus, Request};
 use crate::components::modal::*;
 use crate::components::tabs::*;
 use pplib::{PracticeCategory, SchedulePlanner};
 
+mod bindings;
 mod components;
 
 // Use `wee_alloc` as the global allocator.
@@ -419,6 +421,15 @@ impl Component for PracticePlannerApp {
         true
     }
 
+    fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
+        if first_render {
+            // render the tabs
+            log::info!("Create_Tab");
+            create_tab();
+            log::info!("Created???");
+        }
+    }
+
     fn view(&self, ctx: &Context<Self>) -> Html {
         // XXX TODO there is too much recalculation going on in here
         // we can probably do better
@@ -513,6 +524,19 @@ Practice the following pattern starting at every fret from 1 to 12, starting at 
                     if self.active_tab == 0 {
 
                     <div class="tile is-child content app-panel">
+                    <div class="vextab-auto" width="680" scale="1.0" editor="false">
+                        {"options space=20
+                        tabstave notation=true key=A time=4/4
+
+                        notes :q =|: (5/2.5/3.7/4) :8 7-5h6/3 ^3^ 5h6-7/5 ^3^ :q 7V/4 |
+                        notes :8 t12p7/4 s5s3/4 :8 3s:16:5-7/5 :h p5/4
+                        text :w, |#segno, ,|, :hd, , #tr
+
+                        options space=25"}
+                    </div>
+                    // {create_tab();}
+
+                        // <div id="boo"></div>
                         {preview}
 
                         <nav class="level content is-large">
