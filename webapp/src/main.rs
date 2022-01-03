@@ -422,12 +422,10 @@ impl Component for PracticePlannerApp {
     }
 
     fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
-        if first_render {
-            // render the tabs
-            log::info!("Create_Tab");
-            create_tab();
-            log::info!("Created???");
-        }
+        // render the tabs
+        log::info!("Create_Tab");
+        create_tab();
+        log::info!("Created???");
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
@@ -450,25 +448,22 @@ impl Component for PracticePlannerApp {
             on_close_modal: ctx.link().callback(|_: usize| Msg::CloseModal),
         };
 
+        // TODO this is bad lol
+        let active_category: &PracticeCategory = match self.scheduler.practicing {
+            true => {
+                &self.scheduler.config.categories[self
+                    .scheduler
+                    .practice_session
+                    .as_ref()
+                    .unwrap()
+                    .current_category as usize]
+            }
+            false => &self.scheduler.config.categories[0],
+        };
+
+        let visible_exercise_md = &active_category.exercises[0].exercise_markdown_contents;
         // TODO split the individual tab contents into their own components
-        let parse_html = parse_markdown_text(
-            "# Left Hand Exercises
-## Exercise #1
-
-Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
-
-<div class=\"vextab-auto\" width=\"680\" scale=\"1.0\" show_errors=\"true\" editor=\"false\">options space=20
-tab-stems=true tab-stem-direction=up
-tabstave notation=false time=4/4
-
-notes :8 1-2-3-4/6 1-2-3-4/5 | 1-2-3-4/4 1-2-3-4/3 | 1-2-3-4/2 1-2-3-4/1 |
-tabstave notation=false time=4/4
-notes :8 1-2-3-4/2 1-2-3-4/3 | 1-2-3-4/4 1-2-3-4/5 | 1-2-3-4/6 :h ## =|=
-
-options space=25
-</div>
-",
-        );
+        let parse_html = parse_markdown_text(&visible_exercise_md);
         let html_text = format!("<div class='preview'>{}</div>", &parse_html);
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");

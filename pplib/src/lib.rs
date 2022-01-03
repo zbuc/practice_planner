@@ -50,45 +50,54 @@ Play random two-note dyads and try to identify the intervals by sound.
             ]
         },
         PracticeCategory {
-            category_name: "Right-Hand Exercises".to_string(),
+            category_name: "Left Hand Exercises".to_string(),
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
-                            "# Right Hand Exercises
+            "# Left Hand Exercises
 ## Exercise #1
 
-Practice the following strumming pattern, starting at a lower tempo.
+Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
 
-```
------------------------------------------1-2-3-4-----------------------------------------
----------------------------------1-2-3-4---------1-2-3-4---------------------------------
--------------------------1-2-3-4-------------------------1-2-3-4-------------------------
------------------1-2-3-4-----------------------------------------1-2-3-4-----------------
----------1-2-3-4---------------------------------------------------------1-2-3-4---------
--1-2-3-4-------------------------------------------------------------------------1-2-3-4-
-```
+Either alternate pick or use all downstrokes.
 
+<div class=\"vextab-auto\" width=\"680\" scale=\"1.0\" show_errors=\"true\" editor=\"false\">options space=20
+tab-stems=true tab-stem-direction=up
+tabstave notation=false time=4/4
+
+notes :8 1-2-3-4/6 1-2-3-4/5 | 1-2-3-4/4 1-2-3-4/3 | 1-2-3-4/2 1-2-3-4/1 |
+tabstave notation=false time=4/4
+notes :8 1-2-3-4/2 1-2-3-4/3 | 1-2-3-4/4 1-2-3-4/5 | 1-2-3-4/6 :h ## =|=
+
+options space=25
+</div>
 ".to_string(),
 
             }]
         },
         PracticeCategory {
-            category_name: "Left-Hand Exercises".to_string(),
+            category_name: "Alternate Picking Exercises".to_string(),
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
-                            "# Left Hand Exercises
+                            "# Alternate Picking Exercises
 ## Exercise #1
 
 Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
 
+Use alternate picking. Try starting with either an upstroke or downstroke.
+
+<div class=\"vextab-auto\" width=\"680\" scale=\"1.0\" show_errors=\"true\" editor=\"false\">options space=20
+tab-stems=true tab-stem-direction=up
+tabstave notation=false time=4/4
+
+notes :8 1/6 2/5 3/6 4/5 1/5 2/4 3/5 4/4 | 1/4 2/3 3/4 4/3 1/3 2/2 3/3 4/2 | 1/2 2/1 3/2 4/1 1/1 2/2 3/1 4/2 |
+tabstave notation=false time=4/4
+notes :8 1/2 2/3 3/2 4/3 1/3 2/4 3/3 4/4 | 1/4 2/5 3/4 4/5 1/5 2/6 3/5 4/6 =|=
+
+options space=25
+</div>
 ```
------------------------------------------1-2-3-4-----------------------------------------
----------------------------------1-2-3-4---------1-2-3-4---------------------------------
--------------------------1-2-3-4-------------------------1-2-3-4-------------------------
------------------1-2-3-4-----------------------------------------1-2-3-4-----------------
----------1-2-3-4---------------------------------------------------------1-2-3-4---------
--1-2-3-4-------------------------------------------------------------------------1-2-3-4-
 ```
 
 ".to_string(),
@@ -100,19 +109,12 @@ Practice the following pattern starting at every fret from 1 to 12, starting at 
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
-                            "# Left Hand Exercises
+                            "# Chord Exercises
 ## Exercise #1
 
-Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+Play every major chord from A to G in root position, and then every minor chord.
 
-```
------------------------------------------1-2-3-4-----------------------------------------
----------------------------------1-2-3-4---------1-2-3-4---------------------------------
--------------------------1-2-3-4-------------------------1-2-3-4-------------------------
------------------1-2-3-4-----------------------------------------1-2-3-4-----------------
----------1-2-3-4---------------------------------------------------------1-2-3-4---------
--1-2-3-4-------------------------------------------------------------------------1-2-3-4-
-```
+Move up to the next position and repeat.
 
 ".to_string(),
 
@@ -123,19 +125,10 @@ Practice the following pattern starting at every fret from 1 to 12, starting at 
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
-                            "# Left Hand Exercises
+                            "# Scale Exercises
 ## Exercise #1
 
-Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
-
-```
------------------------------------------1-2-3-4-----------------------------------------
----------------------------------1-2-3-4---------1-2-3-4---------------------------------
--------------------------1-2-3-4-------------------------1-2-3-4-------------------------
------------------1-2-3-4-----------------------------------------1-2-3-4-----------------
----------1-2-3-4---------------------------------------------------------1-2-3-4---------
--1-2-3-4-------------------------------------------------------------------------1-2-3-4-
-```
+Play a scale to a metronome in different positions. Increase the tempo after you've played the scale perfectly four times.
 
 ".to_string(),
 
@@ -146,20 +139,21 @@ Practice the following pattern starting at every fret from 1 to 12, starting at 
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
-                            "# Left Hand Exercises
+                            "# Sight Reading Exercises
 ## Exercise #1
 
-Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+Play the following passage:
 
-```
------------------------------------------1-2-3-4-----------------------------------------
----------------------------------1-2-3-4---------1-2-3-4---------------------------------
--------------------------1-2-3-4-------------------------1-2-3-4-------------------------
------------------1-2-3-4-----------------------------------------1-2-3-4-----------------
----------1-2-3-4---------------------------------------------------------1-2-3-4---------
--1-2-3-4-------------------------------------------------------------------------1-2-3-4-
-```
 
+<div class=\"vextab-auto\" width=\"680\" scale=\"1.0\" show_errors=\"true\" editor=\"false\">options space=20
+tabstave notation=true time=4/4 tablature=false
+
+notes :8 1-2-3-4/6 1-2-3-4/5 | 1-2-3-4/4 1-2-3-4/3 | 1-2-3-4/2 1-2-3-4/1 |
+tabstave notation=true time=4/4 tablature=false
+notes :8 1-2-3-4/2 1-2-3-4/3 | 1-2-3-4/4 1-2-3-4/5 | 1-2-3-4/6 :h ## =|=
+
+options space=25
+</div>
 ".to_string(),
 
             }]
@@ -169,19 +163,10 @@ Practice the following pattern starting at every fret from 1 to 12, starting at 
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
-                            "# Left Hand Exercises
+                            "# Music Theory Exercises
 ## Exercise #1
 
-Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
-
-```
------------------------------------------1-2-3-4-----------------------------------------
----------------------------------1-2-3-4---------1-2-3-4---------------------------------
--------------------------1-2-3-4-------------------------1-2-3-4-------------------------
------------------1-2-3-4-----------------------------------------1-2-3-4-----------------
----------1-2-3-4---------------------------------------------------------1-2-3-4---------
--1-2-3-4-------------------------------------------------------------------------1-2-3-4-
-```
+For every note A to G, play the note and then the relative minor.
 
 ".to_string(),
 
@@ -192,19 +177,10 @@ Practice the following pattern starting at every fret from 1 to 12, starting at 
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
-                            "# Left Hand Exercises
+                            "# Improvisation Exercises
 ## Exercise #1
 
-Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
-
-```
------------------------------------------1-2-3-4-----------------------------------------
----------------------------------1-2-3-4---------1-2-3-4---------------------------------
--------------------------1-2-3-4-------------------------1-2-3-4-------------------------
------------------1-2-3-4-----------------------------------------1-2-3-4-----------------
----------1-2-3-4---------------------------------------------------------1-2-3-4---------
--1-2-3-4-------------------------------------------------------------------------1-2-3-4-
-```
+Play along to a backing track.
 
 ".to_string(),
 
@@ -215,19 +191,12 @@ Practice the following pattern starting at every fret from 1 to 12, starting at 
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
-                            "# Left Hand Exercises
+                            "# Songwriting Exercises
 ## Exercise #1
 
-Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+Work on a song.
 
-```
------------------------------------------1-2-3-4-----------------------------------------
----------------------------------1-2-3-4---------1-2-3-4---------------------------------
--------------------------1-2-3-4-------------------------1-2-3-4-------------------------
------------------1-2-3-4-----------------------------------------1-2-3-4-----------------
----------1-2-3-4---------------------------------------------------------1-2-3-4---------
--1-2-3-4-------------------------------------------------------------------------1-2-3-4-
-```
+Maybe you could write about your song here.
 
 ".to_string(),
 
@@ -238,19 +207,12 @@ Practice the following pattern starting at every fret from 1 to 12, starting at 
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
-                            "# Left Hand Exercises
+                            "# Rhythm Exercises
 ## Exercise #1
 
-Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+Play an open string along to a metronome at a slow tempo.
 
-```
------------------------------------------1-2-3-4-----------------------------------------
----------------------------------1-2-3-4---------1-2-3-4---------------------------------
--------------------------1-2-3-4-------------------------1-2-3-4-------------------------
------------------1-2-3-4-----------------------------------------1-2-3-4-----------------
----------1-2-3-4---------------------------------------------------------1-2-3-4---------
--1-2-3-4-------------------------------------------------------------------------1-2-3-4-
-```
+Alternate playing whole measures as quarter notes and eighth notes.
 
 ".to_string(),
 
@@ -261,19 +223,14 @@ Practice the following pattern starting at every fret from 1 to 12, starting at 
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
-                            "# Left Hand Exercises
+                            "# Learn A Song
 ## Exercise #1
 
-Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
+Work on learning that song you wanted to play.
 
-```
------------------------------------------1-2-3-4-----------------------------------------
----------------------------------1-2-3-4---------1-2-3-4---------------------------------
--------------------------1-2-3-4-------------------------1-2-3-4-------------------------
------------------1-2-3-4-----------------------------------------1-2-3-4-----------------
----------1-2-3-4---------------------------------------------------------1-2-3-4---------
--1-2-3-4-------------------------------------------------------------------------1-2-3-4-
-```
+You can embed videos here, for example:
+
+<iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/Z4z4hc5gg60\" title=\"YouTube video player\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>
 
 ".to_string(),
 
