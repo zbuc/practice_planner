@@ -8,7 +8,9 @@ use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
+use std::ops::Index;
 use std::ops::Sub;
+use std::rc::Rc;
 
 use anyhow::Result;
 use chrono::{Date, DateTime, Duration, Utc};
@@ -296,13 +298,14 @@ pub struct SchedulePlanner<'a> {
     pub practice_session: Option<PracticeSession<'a>>,
 }
 
+/// Practice sessions. If one exists, it is active.
 #[derive(Debug)]
 pub struct PracticeSession<'a> {
     // TODO these could be references to the state on SchedulePlanner
     // but the lifetimes got annoying and I gave up and there is some
     // duplicated data
-    pub schedule: Vec<PracticeCategory>,
-    pub current_category: u64,
+    pub schedule: Vec<Rc<PracticeCategory>>,
+    pub current_category: Rc<PracticeCategory>,
     pub completed: HashMap<&'a PracticeCategory, bool>,
     pub time_left: Duration,
     pub start_time: DateTime<Utc>,
@@ -310,12 +313,73 @@ pub struct PracticeSession<'a> {
 }
 
 impl<'a> PracticeSession<'a> {
+    pub fn new(schedule: Vec<PracticeCategory>, current_time: DateTime<Utc>) -> Self {
+        let schedule: Vec<Rc<PracticeCategory>> =
+            schedule.iter().map(|c| Rc::new(c.clone())).collect();
+        let current_category = &schedule[0];
+        PracticeSession {
+            schedule: schedule.to_owned(),
+            current_category: Rc::clone(current_category),
+            completed: HashMap::new(),
+            time_left: Duration::seconds(0),
+            // TODO maybe make an Option type
+            start_time: current_time,
+            category_start_time: current_time,
+        }
+    }
     pub fn set_time_left(&mut self, time_left: Duration) {
         self.time_left = time_left;
     }
+
+    pub fn get_current_category_idx(&self) -> usize {
+        self.schedule
+            .iter()
+            .position(|r| *r == self.current_category)
+            .expect("expected current category to always be present in schedule")
+    }
+
+    pub fn set_current_category_idx(
+        &mut self,
+        idx: usize,
+        current_time: DateTime<Utc>,
+    ) -> Result<()> {
+        if idx > self.schedule.len() {
+            return Err(anyhow::anyhow!("Invalid category index"));
+        }
+
+        let mut i = 0;
+        for category in &self.schedule {
+            if i == idx {
+                self.current_category = Rc::clone(category);
+                break;
+            }
+            i = i + 1;
+        }
+
+        self.category_start_time = current_time;
+
+        // can't get this working due to lifetimes
+        // self.current_category = self
+        //     .schedule
+        //     .iter()
+        //     .enumerate()
+        //     .find(|(i, &val)| *i == idx)
+        //     .expect("invalid category index")
+        //     .1;
+        Ok(())
+    }
+
+    // pub fn get_active_category(&self) -> &PracticeCategory {
+    //     &self.scheduler.config.categories[self
+    //         .scheduler
+    //         .practice_session
+    //         .as_ref()
+    //         .expect()
+    //         .current_category as usize];
+    // }
 }
 
-impl SchedulePlanner<'_> {
+impl<'a> SchedulePlanner<'_> {
     pub fn new() -> Self {
         SchedulePlanner {
             config: PlannerConfiguration {
@@ -483,17 +547,20 @@ impl SchedulePlanner<'_> {
         if self.practice_session.is_none() {
             return Err(anyhow::anyhow!("Expected practice session"));
         }
-        if self.practice_session.as_ref().unwrap().current_category as usize
-            == self.practice_session.as_ref().unwrap().schedule.len() - 1
-        {
+
+        let current_category_idx = self
+            .practice_session
+            .as_ref()
+            .unwrap()
+            .get_current_category_idx();
+        if current_category_idx == self.practice_session.as_ref().unwrap().schedule.len() - 1 {
             // practice session is complete
             return self.mark_todays_practice_completed(current_time);
         }
 
         // advance to the next category
-        self.practice_session.as_mut().unwrap().current_category =
-            self.practice_session.as_mut().unwrap().current_category + 1;
-        self.practice_session.as_mut().unwrap().category_start_time = current_time;
+        let mut_practice = self.practice_session.as_mut().unwrap();
+        mut_practice.set_current_category_idx(current_category_idx, current_time)?;
         // self.practice_session.unwrap().category_start_time = now;
         Ok(())
     }
@@ -551,20 +618,12 @@ impl SchedulePlanner<'_> {
         Ok(())
     }
 
-    pub fn start_daily_practice<'a>(&'a mut self, current_time: DateTime<Utc>) -> Result<()> {
+    pub fn start_daily_practice(&mut self, current_time: DateTime<Utc>) -> Result<()> {
         self.practicing = true;
         // ensure today's schedule has been set
         self.update_todays_schedule(false, current_time)?;
         let schedule = self.todays_schedule.as_ref().unwrap().clone();
-        self.practice_session = Some(PracticeSession {
-            schedule: schedule,
-            current_category: 0,
-            completed: HashMap::new(),
-            time_left: Duration::seconds(0),
-            // TODO maybe make an Option type
-            start_time: current_time,
-            category_start_time: current_time,
-        });
+        self.practice_session = Some(PracticeSession::new(schedule, current_time));
         for category in self.todays_schedule.as_ref().unwrap().iter() {
             log::info!("Starting practice for category: {:#?}", category);
             self.start_category(&category)?;

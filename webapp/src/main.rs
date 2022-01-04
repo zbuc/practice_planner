@@ -6,6 +6,7 @@ extern crate lazy_static;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
 use std::ops::Sub;
+use std::rc::Rc;
 
 use anyhow::Result;
 use chrono::{Date, DateTime, Utc};
@@ -71,10 +72,12 @@ impl PracticePlannerApp {
     fn view_category(
         &self,
         (idx, category): (usize, &PracticeCategory),
-        active: u64,
+        active_idx: Option<usize>,
         practicing: bool,
         _link: &Scope<Self>,
     ) -> Html {
+        // XXX TODO handle this better?
+        let active = active_idx.unwrap_or_default();
         let mut class = Classes::from("todo");
         if practicing && active as usize == idx {
             class.push("active-category");
@@ -204,8 +207,8 @@ impl PracticePlannerApp {
     ) -> Html {
         log::info!("making the category list");
         let active = match practice_session {
-            Some(ps) => ps.current_category,
-            None => 0,
+            Some(ps) => Some(ps.get_current_category_idx()),
+            None => None,
         };
         let practicing = self.scheduler.practicing;
 
@@ -448,20 +451,15 @@ impl Component for PracticePlannerApp {
             on_close_modal: ctx.link().callback(|_: usize| Msg::CloseModal),
         };
 
-        // TODO this is bad lol
-        let active_category: &PracticeCategory = match self.scheduler.practicing {
-            true => {
-                &self.scheduler.config.categories[self
-                    .scheduler
-                    .practice_session
-                    .as_ref()
-                    .unwrap()
-                    .current_category as usize]
-            }
-            false => &self.scheduler.config.categories[0],
+        let active_category: Option<Rc<PracticeCategory>> =
+            match &self.scheduler.practice_session.as_ref() {
+                Some(ps) => Some(Rc::clone(&ps.current_category)),
+                None => None,
+            };
+        let visible_exercise_md = match active_category {
+            Some(ac) => ac.exercises[0].exercise_markdown_contents.clone(),
+            None => "".to_string(),
         };
-
-        let visible_exercise_md = &active_category.exercises[0].exercise_markdown_contents;
         // TODO split the individual tab contents into their own components
         let parse_html = parse_markdown_text(&visible_exercise_md);
         let html_text = format!("<div class='preview'>{}</div>", &parse_html);
