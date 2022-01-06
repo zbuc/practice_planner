@@ -56,6 +56,13 @@ ul.category-list input[type=checkbox] {
 
 div.main-content {
 	margin-top: 2.2em;
+	position: relative;
+}
+
+.icon-help {
+	position: absolute;
+	right: 13px;
+	top: 15px;
 }
 
 html,
@@ -73,4 +80,9 @@ nav.level {
 
 .app-panel {
 	position: relative;
+}
+
+.modal-content p {
+	margin-top: 1em;
+    margin-bottom: 1em;
 }

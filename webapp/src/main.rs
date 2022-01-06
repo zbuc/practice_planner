@@ -38,6 +38,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 const CONFIG_KEY: &str = "yew.practiceplanner.config";
 const HISTORY_KEY: &str = "yew.practiceplanner.history";
+const FIRST_PAGE_VIEW: &str = "yew.practiceplanner.first_page_view";
 
 pub enum Msg {
     StartPracticing,
@@ -49,6 +50,8 @@ pub enum Msg {
     ChangeTab(usize),
     CloseModal,
     OpenModal,
+    ShowHelp,
+    SetHelp,
 }
 
 // Splitting this out makes local debugging easier
@@ -66,6 +69,9 @@ pub struct PracticePlannerApp {
     modal_closed: bool,
     displaying_modal: bool,
     modal_content: Html,
+    modal_title: String,
+    modal_type: String,
+    first_page_view: bool,
 }
 
 impl PracticePlannerApp {
@@ -258,6 +264,8 @@ impl Component for PracticePlannerApp {
         scheduler
             .update_todays_schedule(false, current_time)
             .expect("Unable to update today's schedule");
+
+        let first_page_view = LocalStorage::get(FIRST_PAGE_VIEW).unwrap_or_else(|_| true);
         Self {
             scheduler,
             interval: None,
@@ -266,6 +274,9 @@ impl Component for PracticePlannerApp {
             modal_closed: false,
             displaying_modal: false,
             modal_content: html! {},
+            modal_title: "Danger".to_string(),
+            modal_type: "danger".to_string(),
+            first_page_view,
         }
     }
 
@@ -274,6 +285,8 @@ impl Component for PracticePlannerApp {
             Msg::ResetHistoryPrompt => {
                 self.displaying_modal = true;
                 self.modal_closed = false;
+                self.modal_title = "Danger".to_string();
+                self.modal_type = "danger".to_string();
                 self.modal_content = html! {
                     <div>
                     <h1>{"Are you sure?"}</h1>
@@ -292,32 +305,9 @@ impl Component for PracticePlannerApp {
                         </div>
                     </div>
                 };
-                // XXX TODO implement again
-                // log::info!("Prompt not implemented... resetting data anyways");
-                // self.scheduler = SchedulePlanner::new();
-                // let current_time = get_current_time();
-                // self.scheduler
-                //     .update_todays_schedule(false, current_time)
-                //     .expect("able to update schedule");
-                // self.save().expect("umable to save");
-                // TODO this would be better as a modal probably but there's
-                // no easy way to trigger those in patternfly-yew
-                // let fix = ctx
-                //     .link()
-                //     .callback(|_| Msg::ResetData)
-                //     .into_action("Reset Data");
-                // let toast = Toast {
-                //     title: "Are you sure?".into(),
-                //     r#type: Type::Danger,
-                //     body: html! {
-                //         <p>{"Are you sure you'd like to reset all your configuration and history?"}</p>
-                //     },
-                //     actions: vec![fix.clone()],
-                //     ..Default::default()
-                // };
-                // ToastDispatcher::new().toast(toast);
             }
             Msg::ResetHistory => {
+                // vv full reset
                 // self.scheduler = SchedulePlanner::new();
                 self.scheduler.reset_history();
                 let current_time = get_current_time();
@@ -419,16 +409,62 @@ impl Component for PracticePlannerApp {
                 self.modal_closed = false;
                 self.displaying_modal = true;
             }
+            Msg::ShowHelp => {
+                LocalStorage::set(FIRST_PAGE_VIEW, false).expect("able to save");
+                self.displaying_modal = true;
+                self.modal_closed = false;
+                self.modal_content = html! {
+                    <div>
+                    <p>{"Welcome to Guitar Practice Planner. It's easy to get started."}</p>
+                    <p>{"The entire app is built around the idea of making it easy for a musician to sit and have an effective practice session that works towards their individual goals."}</p>
+                    <p>{"Once you've set the app up to your liking, you'll be able to jump into a practice session as soon as you open the app."}</p>
+                    <p>{"The way this works is through "}<strong>{"Skills"}</strong>{" and "}<strong>{"Activities"}</strong>{"."}</p>
+                    <p>{"First, use the "}<strong>{"Settings"}</strong>{" tab to define the different skills you want to practice. These would be things like rhythm, songwriting, left-hand technique, scales, etc."}</p>
+                    <p>{"Then, decide which activities you want to perform. For example, you might write different patterns to play with your hand, embed a YouTube song you wanted to practice, or display chord fingerings to practice."}</p>
+                    <p>{"We've also provided you with some initial skills and activities to get you started and show some of the possibilities."}</p>
+                    <p>{"We support Markdown syntax for setting up activities -- this lets you embed tablature or score, YouTube videos, insert links, and have full control over the activity to suit your needs."}</p>
+                    <p>{"Our integrated metronome and note synthesizer give you more tools at your disposal to have a smooth practice session."}</p>
+                    <p>{"Each day, you will have a "}<strong>{"Practice Session"}</strong>{" created for you based on the skills you want to practice."}</p>
+                    <p>{"Just click the "}<strong>{"Start"}</strong>{" button and you'll practice each skill scheduled for the day's session for an equal amount of time."}</p>
+                    <p>{"Skills will be selected so that you never go too long without practicing a given skill."}</p>
+                    </div>
+                };
+                self.modal_title = "Info".to_string();
+                self.modal_type = "info".to_string();
+            }
+            Msg::SetHelp => {
+                // TODO duplication here, should share
+                LocalStorage::set(FIRST_PAGE_VIEW, false).expect("able to save");
+                self.displaying_modal = true;
+                self.modal_closed = false;
+                self.modal_content = html! {
+                    <div>
+                    <p>{"Welcome to Guitar Practice Planner. It's easy to get started."}</p>
+                    <p>{"The entire app is built around the idea of making it easy for a musician to sit and have an effective practice session that works towards their individual goals."}</p>
+                    <p>{"Once you've set the app up to your liking, you'll be able to jump into a practice session as soon as you open the app."}</p>
+                    <p>{"The way this works is through "}<strong>{"Skills"}</strong>{" and "}<strong>{"Activities"}</strong>{"."}</p>
+                    <p>{"First, use the "}<strong>{"Settings"}</strong>{" tab to define the different skills you want to practice. These would be things like rhythm, songwriting, left-hand technique, scales, etc."}</p>
+                    <p>{"Then, decide which activities you want to perform. For example, you might write different patterns to play with your hand, embed a YouTube song you wanted to practice, or display chord fingerings to practice."}</p>
+                    <p>{"We've also provided you with some initial skills and activities to get you started and show some of the possibilities."}</p>
+                    <p>{"We support Markdown syntax for setting up activities -- this lets you embed tablature or score, YouTube videos, insert links, and have full control over the activity to suit your needs."}</p>
+                    <p>{"Our integrated metronome and note synthesizer give you more tools at your disposal to have a smooth practice session."}</p>
+                    <p>{"Each day, you will have a "}<strong>{"Practice Session"}</strong>{" created for you based on the skills you want to practice."}</p>
+                    <p>{"Just click the "}<strong>{"Start"}</strong>{" button and you'll practice each skill scheduled for the day's session for an equal amount of time."}</p>
+                    <p>{"Skills will be selected so that you never go too long without practicing a given skill."}</p>
+                    </div>
+                };
+                self.modal_title = "Info".to_string();
+                self.modal_type = "info".to_string();
+                return false;
+            }
         }
 
         true
     }
 
-    fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
+    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         // render the tabs
-        log::info!("Create_Tab");
         create_tab();
-        log::info!("Created???");
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
@@ -441,13 +477,19 @@ impl Component for PracticePlannerApp {
             log::info!("currently practicing");
         }
 
+        if self.first_page_view {
+            // display help modal on first view
+            ctx.link().send_message(Msg::SetHelp);
+        }
+
         let props = TabDisplayProps {
             on_tab_change: ctx.link().callback(|i: usize| Msg::ChangeTab(i)),
         };
         let modal_props = ModalDisplayProps {
-            modal_type: "warning".to_string(),
+            modal_type: self.modal_type.to_string(),
             content: self.modal_content.clone(),
-            active: self.displaying_modal && !self.modal_closed,
+            modal_title: self.modal_title.clone(),
+            active: self.first_page_view || (self.displaying_modal && !self.modal_closed),
             on_close_modal: ctx.link().callback(|_: usize| Msg::CloseModal),
         };
 
@@ -497,6 +539,11 @@ impl Component for PracticePlannerApp {
                 </div>
                 <div class="main-content tile is-6 is-vertical box">
                     <TabDisplay ..props/>
+                    <a title="Help" onclick={ctx.link().callback(|_| Msg::ShowHelp)}>
+                        <span class="icon is-medium has-text-success icon-help">
+                            <i class="far fa-question-circle fa-lg"></i>
+                        </span>
+                    </a>
                     <div class="tile is-parent">
                     <div class="tile is-child content is-large is-vertical app-panel">
                     if self.active_tab == 0 {
