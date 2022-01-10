@@ -551,6 +551,13 @@ impl Component for PracticePlannerApp {
             .scheduler
             .get_history_n_days_back(3, current_time)
             .expect("unable to retrieve history");
+
+        let cl = self.scheduler.config.categories
+                .iter()
+                .map(|category| {
+                    html! { <option value={category.category_name.clone()}>{category.category_name.clone()}</option> }
+                })
+                .collect::<Vec<_>>();
         html! {
             <>
             <ModalDisplay ..modal_props/>
@@ -591,6 +598,20 @@ impl Component for PracticePlannerApp {
                             { "Reset History" }
                         </button>
                     } else if self.active_tab == 2 {
+                        <p>
+                        <label for="category_list">{"Categories"}</label>
+                        </p>
+                        <div class="select is-multiple">
+                        <select id="category_list" multiple=true>
+                            { cl }
+                        </select>
+                        </div>
+
+                        <p><label for="category_minutes">{"Minutes to Practice Each Category"}</label></p>
+                        <input id="category_minutes" class="input is-primary" type="text" placeholder="15"/>
+
+                        <p><label for="category_count">{"Number of Categories to Practice Per Day"}</label></p>
+                        <input id="category_count" class="input is-primary" type="text" placeholder="4"/>
                     }
                     </div>
                     // this should only show on the practice tab
