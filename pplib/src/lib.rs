@@ -553,14 +553,24 @@ impl<'a> SchedulePlanner<'_> {
             .as_ref()
             .unwrap()
             .get_current_category_idx();
+        log::info!(
+            "current_category_idx: {} schedule len: {}",
+            current_category_idx,
+            self.practice_session.as_ref().unwrap().schedule.len() - 1
+        );
         if current_category_idx == self.practice_session.as_ref().unwrap().schedule.len() - 1 {
             // practice session is complete
             return self.mark_todays_practice_completed(current_time);
         }
 
         // advance to the next category
-        let mut_practice = self.practice_session.as_mut().unwrap();
-        mut_practice.set_current_category_idx(current_category_idx, current_time)?;
+        // let mut_practice = self.practice_session.as_mut().unwrap();
+        // mut_practice.set_current_category_idx(current_category_idx, current_time)?;
+        self.practice_session
+            .as_mut()
+            .unwrap()
+            .set_current_category_idx(current_category_idx + 1, current_time)?;
+        // self.practice_session = mut_practice;
         // self.practice_session.unwrap().category_start_time = now;
         Ok(())
     }
