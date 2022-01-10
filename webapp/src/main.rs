@@ -16,6 +16,7 @@ use hhmmss::Hhmmss;
 use log;
 use pplib::PracticeSession;
 use pulldown_cmark::{html::push_html, Options, Parser};
+use web_sys::{HtmlOptionElement, MouseEvent};
 #[allow(unused_imports)]
 use yew::prelude::*;
 use yew::virtual_dom::VNode;
@@ -44,7 +45,7 @@ pub enum Msg {
     StartPracticing,
     StopPracticing,
     PracticeTick,
-    ResetHistoryPrompt,
+    ShowResetHistoryPrompt,
     ResetHistory,
     ShuffleToday,
     ChangeTab(usize),
@@ -52,6 +53,10 @@ pub enum Msg {
     OpenModal,
     ShowHelp,
     SetHelp,
+    SelectCategory(HtmlOptionElement),
+    ShowDeleteCategoryPrompt,
+    ShowResetSettingsPrompt,
+    ResetSettings,
 }
 
 // Splitting this out makes local debugging easier
@@ -72,6 +77,10 @@ pub struct PracticePlannerApp {
     modal_title: String,
     modal_type: String,
     first_page_view: bool,
+    // the web app allows users to set practice time in terms of minutes
+    practice_minutes: usize,
+    // TODO this should really be a prop in a Settings (sub)component
+    selected_category: Option<String>,
 }
 
 impl PracticePlannerApp {
@@ -90,7 +99,7 @@ impl PracticePlannerApp {
         } else if practicing && active as usize > idx {
             class.push("completed-category")
         }
-        log::info!("making the category item");
+        log::debug!("making the category item");
         html! {
             <li {class}>
                 <div class="view">
@@ -113,7 +122,7 @@ impl PracticePlannerApp {
         _link: &Scope<Self>,
     ) -> Html {
         let _class = Classes::from("todo");
-        log::info!("making the history list");
+        log::debug!("making the history list");
 
         if history_list.is_empty() {
             return html! {
@@ -142,7 +151,7 @@ impl PracticePlannerApp {
 
     fn save(&self) -> Result<()> {
         // TODO need to bubble this error up actually
-        log::info!("Saving...");
+        log::debug!("Saving...");
         LocalStorage::set(CONFIG_KEY, &self.scheduler.config).expect("able to save");
         LocalStorage::set(HISTORY_KEY, &self.scheduler.history).expect("able to save");
         Ok(())
@@ -211,7 +220,7 @@ impl PracticePlannerApp {
         practice_session: &Option<PracticeSession>,
         link: &Scope<Self>,
     ) -> Html {
-        log::info!("making the category list");
+        log::debug!("making the category list");
         let active = match practice_session {
             Some(ps) => Some(ps.get_current_category_idx()),
             None => None,
@@ -223,10 +232,10 @@ impl PracticePlannerApp {
             <ul class="category-list">
             {
                 if self.scheduler.get_todays_schedule().is_some() {
-                    log::info!("got a schedule for today");
+                    log::debug!("got a schedule for today");
                     html! { for self.scheduler.get_todays_schedule().unwrap().iter().enumerate().map(|e| self.view_category(e, active, practicing, link)) }
                 } else {
-                    log::info!("no schedule available :(");
+                    log::debug!("no schedule available :(");
                     html! {}
                 }
             }
@@ -245,7 +254,7 @@ impl Component for PracticePlannerApp {
         let history = LocalStorage::get(HISTORY_KEY);
         let mut scheduler = match config {
             Ok(conf) => {
-                log::info!("Found saved data: {:#?}", history);
+                log::debug!("Found saved data: {:#?}", history);
                 SchedulePlanner {
                     config: conf,
                     history: history.unwrap_or_default(),
@@ -255,10 +264,12 @@ impl Component for PracticePlannerApp {
                 }
             }
             Err(_e) => {
-                log::info!("Did not find saved data");
+                log::debug!("Did not find saved data");
                 SchedulePlanner::new()
             }
         };
+
+        let practice_minutes = scheduler.config.category_practice_time.num_minutes() as usize;
 
         let current_time = get_current_time();
         scheduler
@@ -297,6 +308,8 @@ impl Component for PracticePlannerApp {
                 modal_title: "Info".to_string(),
                 modal_type: "info".to_string(),
                 first_page_view,
+                practice_minutes,
+                selected_category: None,
             }
         } else {
             Self {
@@ -310,13 +323,49 @@ impl Component for PracticePlannerApp {
                 modal_title: "Danger".to_string(),
                 modal_type: "danger".to_string(),
                 first_page_view,
+                practice_minutes,
+                selected_category: None,
             }
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::ResetHistoryPrompt => {
+            Msg::ShowResetSettingsPrompt => {
+                self.displaying_modal = true;
+                self.modal_closed = false;
+                self.modal_title = "Danger".to_string();
+                self.modal_type = "danger".to_string();
+                self.modal_content = html! {
+                    <div>
+                    <h1>{"Are you sure?"}</h1>
+                    <p>{"Are you sure you'd like to reset your settings?"}</p>
+                    <p>{"This is "}<strong>{"irreversible"}</strong>{", and will reset all of your history and settings to default."}</p>
+                    <div>
+                        <div class="icon-text">
+                            <a title="Reset Settings" onclick={ctx.link().callback(|_| Msg::ResetSettings)}>
+                                <span class="icon is-medium">
+                                    <i class="fas fa-trash fa-lg"></i>
+                                </span>
+                            </a>
+                        </div>
+                        <a title="Reset Settings" onclick={ctx.link().callback(|_| Msg::ResetSettings)}>
+                        {"Reset Settings"}
+                        </a>
+                        </div>
+                    </div>
+                };
+            }
+            Msg::ResetSettings => {
+                // vv full reset
+                self.scheduler = SchedulePlanner::new();
+                let current_time = get_current_time();
+                self.scheduler
+                    .update_todays_schedule(false, current_time)
+                    .expect("able to update schedule");
+                self.save().expect("umable to save");
+            }
+            Msg::ShowResetHistoryPrompt => {
                 self.displaying_modal = true;
                 self.modal_closed = false;
                 self.modal_title = "Danger".to_string();
@@ -341,8 +390,6 @@ impl Component for PracticePlannerApp {
                 };
             }
             Msg::ResetHistory => {
-                // vv full reset
-                // self.scheduler = SchedulePlanner::new();
                 self.scheduler.reset_history();
                 let current_time = get_current_time();
                 self.scheduler
@@ -373,7 +420,7 @@ impl Component for PracticePlannerApp {
                 }
             }
             Msg::PracticeTick => {
-                log::info!("Tick");
+                log::debug!("Tick");
 
                 let now = get_current_time();
                 let time_elapsed = now.sub(
@@ -436,7 +483,7 @@ impl Component for PracticePlannerApp {
                 self.active_tab = i;
             }
             Msg::CloseModal => {
-                log::info!("Close modal");
+                log::debug!("Close modal");
                 self.modal_closed = true;
                 // vv that's bad TODO fix
                 self.first_page_view = false;
@@ -493,6 +540,40 @@ impl Component for PracticePlannerApp {
                 self.modal_type = "info".to_string();
                 return false;
             }
+            Msg::SelectCategory(opt) => {
+                // display the delete icon next to it
+                log::debug!("SelectCategory");
+                self.selected_category = Some(opt.value());
+                return true;
+            }
+            Msg::ShowDeleteCategoryPrompt => {
+                log::debug!("ShowDeleteCategoryPrompt");
+                // display a prompt because this is a pretty srs irreversible move
+
+                self.displaying_modal = true;
+                self.modal_closed = false;
+                self.modal_title = "Danger".to_string();
+                self.modal_type = "danger".to_string();
+                self.modal_content = html! {
+                    <div>
+                    <h1>{"Are you sure?"}</h1>
+                    <p>{"Are you sure you'd like to delete this skill?"}</p>
+                    <p>{"This is "}<strong>{"irreversible"}</strong>{", and you will also delete any activities associated with this skill."}</p>
+                    <div>
+                        <div class="icon-text">
+                            <a title="Reset History" onclick={ctx.link().callback(|_| Msg::ResetHistory)}>
+                                <span class="icon is-medium">
+                                    <i class="fas fa-trash fa-lg"></i>
+                                </span>
+                            </a>
+                        </div>
+                        <a title="Reset History" onclick={ctx.link().callback(|_| Msg::ResetHistory)}>
+                        {"Reset History"}
+                        </a>
+                        </div>
+                    </div>
+                };
+            }
         }
 
         true
@@ -510,7 +591,7 @@ impl Component for PracticePlannerApp {
         // recalculated every re-render
         let _hidden_class = "hidden";
         if self.scheduler.practicing {
-            log::info!("currently practicing");
+            log::debug!("currently practicing");
         }
 
         let modal_props = ModalDisplayProps {
@@ -555,7 +636,7 @@ impl Component for PracticePlannerApp {
         let cl = self.scheduler.config.categories
                 .iter()
                 .map(|category| {
-                    html! { <option value={category.category_name.clone()}>{category.category_name.clone()}</option> }
+                    html! { <option value={category.category_name.clone()} onclick={ctx.link().callback(|e: MouseEvent| Msg::SelectCategory(e.target_unchecked_into::<HtmlOptionElement>()))}>{category.category_name.clone()}</option> }
                 })
                 .collect::<Vec<_>>();
         html! {
@@ -593,13 +674,13 @@ impl Component for PracticePlannerApp {
                         <p>{ "Streak: " }<strong>{ streak }{ " days" }</strong></p>
                         <button class="favorite styled"
                                 type="button"
-                                onclick={ctx.link().callback(|_| Msg::ResetHistoryPrompt)}
+                                onclick={ctx.link().callback(|_| Msg::ShowResetHistoryPrompt)}
                                 >
                             { "Reset History" }
                         </button>
                     } else if self.active_tab == 2 {
                         <p>
-                        <label for="category_list">{"Categories"}</label>
+                        <label for="category_list">{"Skills"}</label>
                         </p>
                         <div class="select is-multiple">
                         <select id="category_list" multiple=true>
@@ -607,11 +688,34 @@ impl Component for PracticePlannerApp {
                         </select>
                         </div>
 
-                        <p><label for="category_minutes">{"Minutes to Practice Each Category"}</label></p>
-                        <input id="category_minutes" class="input is-primary" type="text" placeholder="15"/>
+                        {
+                            if self.selected_category.is_some() {
+                                html! {
+                                    <div class="icon-text">
+                                        <a title="Delete Category" onclick={ctx.link().callback(|_| Msg::ShowDeleteCategoryPrompt)}>
+                                            <span class="icon is-medium has-text-success">
+                                                <i class="fas fa-trash fa-lg"></i>
+                                            </span>
+                                        </a>
+                                    </div>
+                                }
+                            } else {
+                                html! {<></>}
+                            }
+                        }
 
-                        <p><label for="category_count">{"Number of Categories to Practice Per Day"}</label></p>
-                        <input id="category_count" class="input is-primary" type="text" placeholder="4"/>
+                        <p><label for="category_minutes">{"Minutes to Practice Each Skill"}</label></p>
+                        <input id="category_minutes" class="input is-primary" type="text" placeholder="15" value={format!("{}", self.practice_minutes)} />
+
+                        <p><label for="category_count">{"Number of Skills to Practice Per Day"}</label></p>
+                        <input id="category_count" class="input is-primary" type="text" placeholder="4" value={format!("{}", self.scheduler.config.categories_per_day)} />
+
+                        <button class="favorite styled"
+                                type="button"
+                                onclick={ctx.link().callback(|_| Msg::ShowResetSettingsPrompt)}
+                                >
+                                {"Reset Settings to Default"}
+                        </button>
                     }
                     </div>
                     // this should only show on the practice tab

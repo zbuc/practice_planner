@@ -397,7 +397,7 @@ impl<'a> SchedulePlanner<'_> {
     }
 
     pub fn get_todays_schedule(&self) -> Option<&Vec<PracticeCategory>> {
-        log::info!("get_todays_schedule");
+        log::debug!("get_todays_schedule");
         self.todays_schedule.as_ref()
     }
 
@@ -417,7 +417,7 @@ impl<'a> SchedulePlanner<'_> {
             }
 
             if key.date() != next_expected_day {
-                log::info!("Streak broken on day: {}", key.date());
+                log::debug!("Streak broken on day: {}", key.date());
                 break;
             }
 
@@ -506,7 +506,7 @@ impl<'a> SchedulePlanner<'_> {
             let mut seen = false;
             let mut d = 0;
             for (_day, day_categories) in past_history.iter() {
-                log::info!("On day: {}", _day);
+                log::debug!("On day: {}", _day);
                 if day_categories.contains(category) {
                     seen = true;
                 }
@@ -525,7 +525,7 @@ impl<'a> SchedulePlanner<'_> {
             }
         }
 
-        log::info!("probabilities: {:#?}", probabilities);
+        log::debug!("probabilities: {:#?}", probabilities);
         self.todays_schedule = Some(
             probabilities
                 .iter()
@@ -543,7 +543,7 @@ impl<'a> SchedulePlanner<'_> {
     }
 
     pub fn advance_practice_session(&mut self, current_time: DateTime<Utc>) -> Result<()> {
-        log::info!("Advancing to next category...");
+        log::debug!("Advancing to next category...");
         if self.practice_session.is_none() {
             return Err(anyhow::anyhow!("Expected practice session"));
         }
@@ -553,7 +553,7 @@ impl<'a> SchedulePlanner<'_> {
             .as_ref()
             .unwrap()
             .get_current_category_idx();
-        log::info!(
+        log::debug!(
             "current_category_idx: {} schedule len: {}",
             current_category_idx,
             self.practice_session.as_ref().unwrap().schedule.len() - 1
@@ -576,7 +576,7 @@ impl<'a> SchedulePlanner<'_> {
     }
 
     pub fn start_category(&self, category: &PracticeCategory) -> Result<()> {
-        log::info!(
+        log::debug!(
             "Starting {} minute practice for category: {:#?}",
             self.config.category_practice_time.num_minutes(),
             category
@@ -595,7 +595,7 @@ impl<'a> SchedulePlanner<'_> {
         // // Keep the task or timer will be cancelled
         // self.timeout_job = Some(handle);
 
-        log::info!("Done practicing category: {:#?}", category);
+        log::debug!("Done practicing category: {:#?}", category);
         // self.play_ding_sound();
 
         Ok(())
@@ -635,10 +635,10 @@ impl<'a> SchedulePlanner<'_> {
         let schedule = self.todays_schedule.as_ref().unwrap().clone();
         self.practice_session = Some(PracticeSession::new(schedule, current_time));
         for category in self.todays_schedule.as_ref().unwrap().iter() {
-            log::info!("Starting practice for category: {:#?}", category);
+            log::debug!("Starting practice for category: {:#?}", category);
             self.start_category(&category)?;
         }
-        log::info!("Finished practicing for today!");
+        log::debug!("Finished practicing for today!");
 
         // record this practice session in history, save to disk
         // self.mark_todays_practice_completed()?;

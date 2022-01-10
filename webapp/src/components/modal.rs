@@ -24,7 +24,7 @@ pub fn modal_display(props: &ModalDisplayProps) -> Html {
     let close_modal = || {
         let parent_handler = props.on_close_modal.clone();
         Callback::from(move |_| {
-            log::info!("close_modal");
+            log::debug!("close_modal");
             parent_handler.emit(1);
         })
     };
