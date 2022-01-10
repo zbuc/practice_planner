@@ -265,18 +265,52 @@ impl Component for PracticePlannerApp {
             .update_todays_schedule(false, current_time)
             .expect("Unable to update today's schedule");
 
-        let first_page_view = LocalStorage::get(FIRST_PAGE_VIEW).unwrap_or_else(|_| true);
-        Self {
-            scheduler,
-            interval: None,
-            event_bus: EventBus::dispatcher(),
-            active_tab: 0,
-            modal_closed: false,
-            displaying_modal: false,
-            modal_content: html! {},
-            modal_title: "Danger".to_string(),
-            modal_type: "danger".to_string(),
-            first_page_view,
+        let first_page_view = LocalStorage::get(FIRST_PAGE_VIEW).unwrap_or_else(|_| {
+            LocalStorage::set(FIRST_PAGE_VIEW, false).unwrap();
+            true
+        });
+        // Display the info modal on first page load
+        if first_page_view {
+            Self {
+                scheduler,
+                interval: None,
+                event_bus: EventBus::dispatcher(),
+                active_tab: 0,
+                modal_closed: false,
+                displaying_modal: true,
+                modal_content: html! {
+                    <div>
+                    <p>{"Welcome to Guitar Practice Planner. It's easy to get started."}</p>
+                    <p>{"The entire app is built around the idea of making it easy for a musician to sit and have an effective practice session that works towards their individual goals."}</p>
+                    <p>{"Once you've set the app up to your liking, you'll be able to jump into a practice session as soon as you open the app."}</p>
+                    <p>{"The way this works is through "}<strong>{"Skills"}</strong>{" and "}<strong>{"Activities"}</strong>{"."}</p>
+                    <p>{"First, use the "}<strong>{"Settings"}</strong>{" tab to define the different skills you want to practice. These would be things like rhythm, songwriting, left-hand technique, scales, etc."}</p>
+                    <p>{"Then, decide which activities you want to perform. For example, you might write different patterns to play with your hand, embed a YouTube song you wanted to practice, or display chord fingerings to practice."}</p>
+                    <p>{"We've also provided you with some initial skills and activities to get you started and show some of the possibilities."}</p>
+                    <p>{"We support Markdown syntax for setting up activities -- this lets you embed tablature or score, YouTube videos, insert links, and have full control over the activity to suit your needs."}</p>
+                    <p>{"Our integrated metronome and note synthesizer give you more tools at your disposal to have a smooth practice session."}</p>
+                    <p>{"Each day, you will have a "}<strong>{"Practice Session"}</strong>{" created for you based on the skills you want to practice."}</p>
+                    <p>{"Just click the "}<strong>{"Start"}</strong>{" button and you'll practice each skill scheduled for the day's session for an equal amount of time."}</p>
+                    <p>{"Skills will be selected so that you never go too long without practicing a given skill."}</p>
+                    </div>
+                },
+                modal_title: "Info".to_string(),
+                modal_type: "info".to_string(),
+                first_page_view,
+            }
+        } else {
+            Self {
+                scheduler,
+                interval: None,
+                event_bus: EventBus::dispatcher(),
+                active_tab: 0,
+                modal_closed: false,
+                displaying_modal: false,
+                modal_content: html! {},
+                modal_title: "Danger".to_string(),
+                modal_type: "danger".to_string(),
+                first_page_view,
+            }
         }
     }
 
@@ -404,6 +438,8 @@ impl Component for PracticePlannerApp {
             Msg::CloseModal => {
                 log::info!("Close modal");
                 self.modal_closed = true;
+                // vv that's bad TODO fix
+                self.first_page_view = false;
             }
             Msg::OpenModal => {
                 self.modal_closed = false;
@@ -477,20 +513,16 @@ impl Component for PracticePlannerApp {
             log::info!("currently practicing");
         }
 
-        if self.first_page_view {
-            // display help modal on first view
-            ctx.link().send_message(Msg::SetHelp);
-        }
-
-        let props = TabDisplayProps {
-            on_tab_change: ctx.link().callback(|i: usize| Msg::ChangeTab(i)),
-        };
         let modal_props = ModalDisplayProps {
             modal_type: self.modal_type.to_string(),
             content: self.modal_content.clone(),
             modal_title: self.modal_title.clone(),
             active: self.first_page_view || (self.displaying_modal && !self.modal_closed),
             on_close_modal: ctx.link().callback(|_: usize| Msg::CloseModal),
+        };
+
+        let props = TabDisplayProps {
+            on_tab_change: ctx.link().callback(|i: usize| Msg::ChangeTab(i)),
         };
 
         let active_category: Option<Rc<PracticeCategory>> =
@@ -565,29 +597,6 @@ impl Component for PracticePlannerApp {
                     if self.active_tab == 0 {
 
                     <div class="tile is-child content app-panel">
-                    // <div class="vextab-auto" width="680" scale="1.0" editor="false" show-errors="true">
-                    //     {"options space=20
-                    //     tabstave notation=true key=A time=4/4
-
-                    //     notes :q =|: (5/2.5/3.7/4) :8 7-5h6/3 ^3^ 5h6-7/5 ^3^ :q 7V/4 |
-                    //     notes :8 t12p7/4 s5s3/4 :8 3s:16:5-7/5 :h p5/4
-                    //     text :w, |#segno, ,|, :hd, , #tr
-
-                    //     options space=25"}
-                    // </div>
-                    // <div class="vextab-auto" width="680" scale="1.0" editor="false" show-errors="true">
-                    //     {"options space=20
-                    //     tabstave notation=true key=A time=4/4
-
-                    //     notes :q =|: (5/2.5/3.7/4) :8 7-5h6/3 ^3^ 5h6-7/5 ^3^ :q 7V/4 |
-                    //     notes :8 t12p7/4 s5s3/4 :8 3s:16:5-7/5 :h p5/4
-                    //     text :w, |#segno, ,|, :hd, , #tr
-
-                    //     options space=25"}
-                    // </div>
-                    // {create_tab();}
-
-                        // <div id="boo"></div>
                         {preview}
 
                         <nav class="level content is-large">
