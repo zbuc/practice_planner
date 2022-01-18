@@ -86,3 +86,13 @@ nav.level {
 	margin-top: 1em;
     margin-bottom: 1em;
 }
+
+@media only screen and (max-width: 600px) {
+	nav#practice-buttons {
+		margin-bottom: -36px;
+	}
+
+	.app-panel nav {
+		margin-bottom: -36px;
+	}
+}

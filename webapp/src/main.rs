@@ -168,14 +168,14 @@ impl PracticePlannerApp {
         html! {
             <>
             {self.view_skill_list(&self.scheduler.practice_session, link)}
-            <nav class="level">
+            <nav id="practice-buttons" class="level is-mobile">
                 // Left side
                 <div class="level-left">
                     { if practicing {
                         html!{
                             <>
                             <div class="level-item">
-                                <h3>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</h3>
+                                <strong>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</strong>
                                 <button class="favorite styled"
                                         type="button"
                                         onclick={link.callback(|_| Msg::StopPracticing)}
@@ -751,7 +751,7 @@ impl Component for PracticePlannerApp {
                     <div class="tile is-child content app-panel">
                         {preview}
 
-                        <nav class="level content is-large">
+                        <nav class="level content is-large is-mobile">
                             // Left side
                             <div class="level-left">
                                 <div class="level-item">
