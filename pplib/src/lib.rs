@@ -380,8 +380,7 @@ impl<'a> SchedulePlanner<'_> {
         SchedulePlanner {
             config: PlannerConfiguration {
                 skills_per_day: 4,
-                // skill_practice_time: Duration::minutes(15),
-                skill_practice_time: Duration::seconds(1),
+                skill_practice_time: Duration::minutes(15),
                 skill_repeat_days: 2,
                 skills: DEFAULT_CATEGORIES.to_vec(),
             },
@@ -475,6 +474,25 @@ impl<'a> SchedulePlanner<'_> {
 
     pub fn reset_history(&mut self) {
         self.history = BTreeMap::new();
+    }
+
+    pub fn delete_skill_string(&mut self, skill_string: String) -> Result<()> {
+        let skill: Vec<&PracticeSkill> = self
+            .config
+            .skills
+            .iter()
+            .filter(|s| s.skill_name == skill_string)
+            .collect();
+
+        if skill.len() == 0 {
+            return Err(anyhow::anyhow!("Expected to find skill being deleted"));
+        }
+
+        if let Some(pos) = self.config.skills.iter().position(|x| x == skill[0]) {
+            self.config.skills.remove(pos);
+        }
+
+        Ok(())
     }
 
     pub fn update_todays_schedule(

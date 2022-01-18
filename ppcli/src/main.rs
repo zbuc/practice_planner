@@ -91,8 +91,7 @@ impl SchedulePlanner {
         // Call this here so it's cached and faster later
         // let (_stream, _stream_handle) = OutputStream::try_default().unwrap();
         SchedulePlanner {
-            //skill_practice_time: Duration::minutes(15),
-            skill_practice_time: Duration::minutes(1),
+            skill_practice_time: Duration::minutes(15),
             skill_repeat_days: 2,
             skills: DEFAULT_CATEGORIES.to_vec(),
             history: BTreeMap::new(),

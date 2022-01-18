@@ -365,6 +365,10 @@ impl Component for PracticePlannerApp {
                     .update_todays_schedule(false, current_time)
                     .expect("able to update schedule");
                 self.save().expect("umable to save");
+
+                self.modal_closed = true;
+                self.displaying_modal = false;
+                return true;
             }
             Msg::ShowResetHistoryPrompt => {
                 self.displaying_modal = true;
@@ -397,6 +401,10 @@ impl Component for PracticePlannerApp {
                     .update_todays_schedule(false, current_time)
                     .expect("able to update schedule");
                 self.save().expect("umable to save");
+
+                self.modal_closed = true;
+                self.displaying_modal = false;
+                return true;
             }
             Msg::ShuffleToday => {
                 if !self.scheduler.practicing {
@@ -577,6 +585,21 @@ impl Component for PracticePlannerApp {
             }
             Msg::DeleteSkill => {
                 log::debug!("DeleteSkill");
+                if self.selected_skill.is_none() {
+                    log::warn!("Tried deleting with nonexistent selected skill");
+                    return false;
+                }
+
+                // TODO should find a better identifier to pass between client/server
+                let skill = self.selected_skill.as_ref().unwrap().clone();
+                self.scheduler
+                    .delete_skill_string(skill)
+                    .expect("delete skill failure");
+
+                self.save().expect("unable to save");
+                self.modal_closed = true;
+                self.displaying_modal = false;
+                return true;
             }
         }
 
