@@ -23,9 +23,9 @@ use thiserror::Error;
 // TODO look at https://www.vexflow.com/ for notation
 // https://rustwasm.github.io/wasm-bindgen/examples/import-js.html
 lazy_static! {
-    pub(crate) static ref DEFAULT_CATEGORIES: Vec<PracticeCategory> = vec![
-        PracticeCategory {
-            category_name: "Ear Training".to_string(),
+    pub(crate) static ref DEFAULT_CATEGORIES: Vec<PracticeSkill> = vec![
+        PracticeSkill {
+            skill_name: "Ear Training".to_string(),
             exercises: vec![
                 PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
@@ -51,8 +51,8 @@ Play random two-note dyads and try to identify the intervals by sound.
             },
             ]
         },
-        PracticeCategory {
-            category_name: "Left Hand Exercises".to_string(),
+        PracticeSkill {
+            skill_name: "Left Hand Exercises".to_string(),
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
@@ -77,8 +77,8 @@ options space=25
 
             }]
         },
-        PracticeCategory {
-            category_name: "Alternate Picking Exercises".to_string(),
+        PracticeSkill {
+            skill_name: "Alternate Picking Exercises".to_string(),
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
@@ -106,8 +106,8 @@ options space=25
 
             }]
         },
-        PracticeCategory {
-            category_name: "Chords".to_string(),
+        PracticeSkill {
+            skill_name: "Chords".to_string(),
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
@@ -122,8 +122,8 @@ Move up to the next position and repeat.
 
             }]
         },
-        PracticeCategory {
-            category_name: "Scales".to_string(),
+        PracticeSkill {
+            skill_name: "Scales".to_string(),
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
@@ -136,8 +136,8 @@ Play a scale to a metronome in different positions. Increase the tempo after you
 
             }]
         },
-        PracticeCategory {
-            category_name: "Sight Reading".to_string(),
+        PracticeSkill {
+            skill_name: "Sight Reading".to_string(),
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
@@ -160,8 +160,8 @@ options space=25
 
             }]
         },
-        PracticeCategory {
-            category_name: "Music Theory".to_string(),
+        PracticeSkill {
+            skill_name: "Music Theory".to_string(),
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
@@ -174,8 +174,8 @@ For every note A to G, play the note and then the relative minor.
 
             }]
         },
-        PracticeCategory {
-            category_name: "Improvisation".to_string(),
+        PracticeSkill {
+            skill_name: "Improvisation".to_string(),
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
@@ -188,8 +188,8 @@ Play along to a backing track.
 
             }]
         },
-        PracticeCategory {
-            category_name: "Songwriting".to_string(),
+        PracticeSkill {
+            skill_name: "Songwriting".to_string(),
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
@@ -204,8 +204,8 @@ Maybe you could write about your song here.
 
             }]
         },
-        PracticeCategory {
-            category_name: "Rhythm".to_string(),
+        PracticeSkill {
+            skill_name: "Rhythm".to_string(),
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
@@ -220,8 +220,8 @@ Alternate playing whole measures as quarter notes and eighth notes.
 
             }]
         },
-        PracticeCategory {
-            category_name: "Learn A Song".to_string(),
+        PracticeSkill {
+            skill_name: "Learn A Song".to_string(),
             exercises: vec![PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
@@ -248,8 +248,8 @@ pub enum SchedulerError {
     //     expected: String,
     //     found: String,
     // },
-    #[error("You must have at least 4 categories to practice")]
-    MissingCategories(),
+    #[error("You must have at least 4 skills to practice")]
+    MissingSkills(),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error), // source and Display delegate to anyhow::Error
@@ -262,36 +262,36 @@ pub struct PracticeExercise {
 }
 
 #[derive(Serialize, Deserialize, Clone, Hash, PartialOrd, Ord, PartialEq, Eq, Debug)]
-pub struct PracticeCategory {
-    pub category_name: String,
+pub struct PracticeSkill {
+    pub skill_name: String,
     pub exercises: Vec<PracticeExercise>,
 }
 
-impl fmt::Display for PracticeCategory {
+impl fmt::Display for PracticeSkill {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.category_name)
+        write!(f, "{}", self.skill_name)
     }
 }
 
 #[serde_with::serde_as]
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct PlannerConfiguration {
-    /// The duration each category is to be practiced.
+    /// The duration each skill is to be practiced.
     #[serde_as(as = "serde_with::DurationSeconds<i64>")]
-    pub category_practice_time: Duration,
-    /// The max number of days allowed to elapse without practicing a category.
-    pub category_repeat_days: usize,
-    /// The number of categories to practice per day.
-    pub categories_per_day: usize,
-    pub categories: Vec<PracticeCategory>,
+    pub skill_practice_time: Duration,
+    /// The max number of days allowed to elapse without practicing a skill.
+    pub skill_repeat_days: usize,
+    /// The number of skills to practice per day.
+    pub skills_per_day: usize,
+    pub skills: Vec<PracticeSkill>,
 }
 
 #[derive(Debug)]
 pub struct SchedulePlanner<'a> {
     pub config: PlannerConfiguration,
     /// BTreeMap containing historical practice sessions.
-    pub history: BTreeMap<DateTime<Utc>, Vec<PracticeCategory>>,
-    pub todays_schedule: Option<Vec<PracticeCategory>>,
+    pub history: BTreeMap<DateTime<Utc>, Vec<PracticeSkill>>,
+    pub todays_schedule: Option<Vec<PracticeSkill>>,
     /// Whether a practice session is currently underway
     pub practicing: bool,
     /// The in-progress practice session
@@ -304,78 +304,74 @@ pub struct PracticeSession<'a> {
     // TODO these could be references to the state on SchedulePlanner
     // but the lifetimes got annoying and I gave up and there is some
     // duplicated data
-    pub schedule: Vec<Rc<PracticeCategory>>,
-    pub current_category: Rc<PracticeCategory>,
-    pub completed: HashMap<&'a PracticeCategory, bool>,
+    pub schedule: Vec<Rc<PracticeSkill>>,
+    pub current_skill: Rc<PracticeSkill>,
+    pub completed: HashMap<&'a PracticeSkill, bool>,
     pub time_left: Duration,
     pub start_time: DateTime<Utc>,
-    pub category_start_time: DateTime<Utc>,
+    pub skill_start_time: DateTime<Utc>,
 }
 
 impl<'a> PracticeSession<'a> {
-    pub fn new(schedule: Vec<PracticeCategory>, current_time: DateTime<Utc>) -> Self {
-        let schedule: Vec<Rc<PracticeCategory>> =
+    pub fn new(schedule: Vec<PracticeSkill>, current_time: DateTime<Utc>) -> Self {
+        let schedule: Vec<Rc<PracticeSkill>> =
             schedule.iter().map(|c| Rc::new(c.clone())).collect();
-        let current_category = &schedule[0];
+        let current_skill = &schedule[0];
         PracticeSession {
             schedule: schedule.to_owned(),
-            current_category: Rc::clone(current_category),
+            current_skill: Rc::clone(current_skill),
             completed: HashMap::new(),
             time_left: Duration::seconds(0),
             // TODO maybe make an Option type
             start_time: current_time,
-            category_start_time: current_time,
+            skill_start_time: current_time,
         }
     }
     pub fn set_time_left(&mut self, time_left: Duration) {
         self.time_left = time_left;
     }
 
-    pub fn get_current_category_idx(&self) -> usize {
+    pub fn get_current_skill_idx(&self) -> usize {
         self.schedule
             .iter()
-            .position(|r| *r == self.current_category)
-            .expect("expected current category to always be present in schedule")
+            .position(|r| *r == self.current_skill)
+            .expect("expected current skill to always be present in schedule")
     }
 
-    pub fn set_current_category_idx(
-        &mut self,
-        idx: usize,
-        current_time: DateTime<Utc>,
-    ) -> Result<()> {
+    pub fn set_current_skill_idx(&mut self, idx: usize, current_time: DateTime<Utc>) -> Result<()> {
         if idx > self.schedule.len() {
-            return Err(anyhow::anyhow!("Invalid category index"));
+            return Err(anyhow::anyhow!("Invalid skill index"));
         }
 
         let mut i = 0;
-        for category in &self.schedule {
+        for skill in &self.schedule {
             if i == idx {
-                self.current_category = Rc::clone(category);
+                self.current_skill = Rc::clone(skill);
                 break;
             }
             i = i + 1;
         }
 
-        self.category_start_time = current_time;
+        self.skill_start_time = current_time;
 
         // can't get this working due to lifetimes
-        // self.current_category = self
+        // self.current_skill = self
         //     .schedule
         //     .iter()
         //     .enumerate()
         //     .find(|(i, &val)| *i == idx)
-        //     .expect("invalid category index")
+        //     .expect("invalid skill index")
         //     .1;
         Ok(())
     }
 
-    // pub fn get_active_category(&self) -> &PracticeCategory {
-    //     &self.scheduler.config.categories[self
+    // pub fn get_active_skill(&self) -> &PracticeSkill {
+    //     &self.scheduler.config.skills[self
     //         .scheduler
     //         .practice_session
     //         .as_ref()
     //         .expect()
-    //         .current_category as usize];
+    //         .current_skill as usize];
     // }
 }
 
@@ -383,11 +379,11 @@ impl<'a> SchedulePlanner<'_> {
     pub fn new() -> Self {
         SchedulePlanner {
             config: PlannerConfiguration {
-                categories_per_day: 4,
-                // category_practice_time: Duration::minutes(15),
-                category_practice_time: Duration::seconds(1),
-                category_repeat_days: 2,
-                categories: DEFAULT_CATEGORIES.to_vec(),
+                skills_per_day: 4,
+                // skill_practice_time: Duration::minutes(15),
+                skill_practice_time: Duration::seconds(1),
+                skill_repeat_days: 2,
+                skills: DEFAULT_CATEGORIES.to_vec(),
             },
             history: BTreeMap::new(),
             todays_schedule: None,
@@ -396,7 +392,7 @@ impl<'a> SchedulePlanner<'_> {
         }
     }
 
-    pub fn get_todays_schedule(&self) -> Option<&Vec<PracticeCategory>> {
+    pub fn get_todays_schedule(&self) -> Option<&Vec<PracticeSkill>> {
         log::debug!("get_todays_schedule");
         self.todays_schedule.as_ref()
     }
@@ -428,34 +424,33 @@ impl<'a> SchedulePlanner<'_> {
         streak_count
     }
 
-    /// Returns the categories seen in the last n days of history as a HashSet<&PracticeCategory>
+    /// Returns the skills seen in the last n days of history as a HashSet<&PracticeSkill>
     pub fn get_history_n_days_back(
         &self,
         n: usize,
         current_time: DateTime<Utc>,
-    ) -> Result<BTreeMap<Date<Utc>, HashSet<&PracticeCategory>>> {
+    ) -> Result<BTreeMap<Date<Utc>, HashSet<&PracticeSkill>>> {
         let n_days_back = current_time.checked_sub_signed(Duration::days(n.try_into().unwrap()));
         if n_days_back.is_none() {
             return Err(anyhow::anyhow!("Invalid historical search term"));
         }
-        let mut historical_categories: BTreeMap<Date<Utc>, HashSet<&PracticeCategory>> =
-            BTreeMap::new();
+        let mut historical_skills: BTreeMap<Date<Utc>, HashSet<&PracticeSkill>> = BTreeMap::new();
 
         for (key, value) in self.history.iter().rev() {
             // if the history item is within the last n days...
             if key > &n_days_back.unwrap() {
                 for v in value {
                     // insert into the HashSet for that day
-                    let day_categories = match historical_categories.contains_key(&key.date()) {
-                        true => historical_categories.get_mut(&key.date()).unwrap(),
+                    let day_skills = match historical_skills.contains_key(&key.date()) {
+                        true => historical_skills.get_mut(&key.date()).unwrap(),
                         false => {
                             let hs = HashSet::new();
-                            historical_categories.insert(key.date(), hs);
-                            historical_categories.get_mut(&key.date()).unwrap()
+                            historical_skills.insert(key.date(), hs);
+                            historical_skills.get_mut(&key.date()).unwrap()
                         }
                     };
 
-                    day_categories.insert(v);
+                    day_skills.insert(v);
                 }
             } else {
                 // since keys are sorted we can break early
@@ -463,7 +458,7 @@ impl<'a> SchedulePlanner<'_> {
             }
         }
 
-        Ok(historical_categories)
+        Ok(historical_skills)
     }
 
     /// Iterate every history item to determine the total days of history
@@ -492,35 +487,35 @@ impl<'a> SchedulePlanner<'_> {
             return Ok(());
         }
 
-        if self.config.categories.len() == 0 {
-            return Err(SchedulerError::MissingCategories());
+        if self.config.skills.len() == 0 {
+            return Err(SchedulerError::MissingSkills());
         }
 
         let past_history =
-            self.get_history_n_days_back(self.config.category_repeat_days, current_time)?;
-        let prob_bandwidth: f64 = 100.0 / self.config.category_repeat_days as f64;
+            self.get_history_n_days_back(self.config.skill_repeat_days, current_time)?;
+        let prob_bandwidth: f64 = 100.0 / self.config.skill_repeat_days as f64;
 
-        let mut probabilities: BTreeMap<&PracticeCategory, u64> = BTreeMap::new();
+        let mut probabilities: BTreeMap<&PracticeSkill, u64> = BTreeMap::new();
 
-        for category in &self.config.categories {
+        for skill in &self.config.skills {
             let mut seen = false;
             let mut d = 0;
-            for (_day, day_categories) in past_history.iter() {
+            for (_day, day_skills) in past_history.iter() {
                 log::debug!("On day: {}", _day);
-                if day_categories.contains(category) {
+                if day_skills.contains(skill) {
                     seen = true;
                 }
 
                 // if we have seen this before, weight the probability by the day seen
                 if seen {
-                    probabilities.insert(category, prob_bandwidth as u64 * d);
+                    probabilities.insert(skill, prob_bandwidth as u64 * d);
                 }
                 d = d + 1;
             }
 
-            // if any categories do not appear in last n days history at all, set probability to 100%
+            // if any skills do not appear in last n days history at all, set probability to 100%
             if !seen {
-                probabilities.insert(category, 100);
+                probabilities.insert(skill, 100);
                 continue;
             }
         }
@@ -530,62 +525,60 @@ impl<'a> SchedulePlanner<'_> {
             probabilities
                 .iter()
                 .collect::<Vec<_>>()
-                .choose_multiple_weighted(
-                    &mut thread_rng(),
-                    self.config.categories_per_day,
-                    |item| item.1.to_owned() as f64,
-                )
+                .choose_multiple_weighted(&mut thread_rng(), self.config.skills_per_day, |item| {
+                    item.1.to_owned() as f64
+                })
                 .unwrap()
                 .map(|item| item.0.to_owned().to_owned())
-                .collect::<Vec<PracticeCategory>>(),
+                .collect::<Vec<PracticeSkill>>(),
         );
         return Ok(());
     }
 
     pub fn advance_practice_session(&mut self, current_time: DateTime<Utc>) -> Result<()> {
-        log::debug!("Advancing to next category...");
+        log::debug!("Advancing to next skill...");
         if self.practice_session.is_none() {
             return Err(anyhow::anyhow!("Expected practice session"));
         }
 
-        let current_category_idx = self
+        let current_skill_idx = self
             .practice_session
             .as_ref()
             .unwrap()
-            .get_current_category_idx();
+            .get_current_skill_idx();
         log::debug!(
-            "current_category_idx: {} schedule len: {}",
-            current_category_idx,
+            "current_skill_idx: {} schedule len: {}",
+            current_skill_idx,
             self.practice_session.as_ref().unwrap().schedule.len() - 1
         );
-        if current_category_idx == self.practice_session.as_ref().unwrap().schedule.len() - 1 {
+        if current_skill_idx == self.practice_session.as_ref().unwrap().schedule.len() - 1 {
             // practice session is complete
             return self.mark_todays_practice_completed(current_time);
         }
 
-        // advance to the next category
+        // advance to the next skill
         // let mut_practice = self.practice_session.as_mut().unwrap();
-        // mut_practice.set_current_category_idx(current_category_idx, current_time)?;
+        // mut_practice.set_current_skill_idx(current_skill_idx, current_time)?;
         self.practice_session
             .as_mut()
             .unwrap()
-            .set_current_category_idx(current_category_idx + 1, current_time)?;
+            .set_current_skill_idx(current_skill_idx + 1, current_time)?;
         // self.practice_session = mut_practice;
-        // self.practice_session.unwrap().category_start_time = now;
+        // self.practice_session.unwrap().skill_start_time = now;
         Ok(())
     }
 
-    pub fn start_category(&self, category: &PracticeCategory) -> Result<()> {
+    pub fn start_skill(&self, skill: &PracticeSkill) -> Result<()> {
         log::debug!(
-            "Starting {} minute practice for category: {:#?}",
-            self.config.category_practice_time.num_minutes(),
-            category
+            "Starting {} minute practice for skill: {:#?}",
+            self.config.skill_practice_time.num_minutes(),
+            skill
         );
 
         // TODO can't sleep in yew context. need to handle differently for CLI vs
         // webapp
         // cli:
-        // thread::sleep(self.category_practice_time.to_std()?);
+        // thread::sleep(self.skill_practice_time.to_std()?);
         //
         // webapp:
         // let handle = TimeoutService::spawn(
@@ -595,7 +588,7 @@ impl<'a> SchedulePlanner<'_> {
         // // Keep the task or timer will be cancelled
         // self.timeout_job = Some(handle);
 
-        log::debug!("Done practicing category: {:#?}", category);
+        log::debug!("Done practicing skill: {:#?}", skill);
         // self.play_ding_sound();
 
         Ok(())
@@ -634,9 +627,9 @@ impl<'a> SchedulePlanner<'_> {
         self.update_todays_schedule(false, current_time)?;
         let schedule = self.todays_schedule.as_ref().unwrap().clone();
         self.practice_session = Some(PracticeSession::new(schedule, current_time));
-        for category in self.todays_schedule.as_ref().unwrap().iter() {
-            log::debug!("Starting practice for category: {:#?}", category);
-            self.start_category(&category)?;
+        for skill in self.todays_schedule.as_ref().unwrap().iter() {
+            log::debug!("Starting practice for skill: {:#?}", skill);
+            self.start_skill(&skill)?;
         }
         log::debug!("Finished practicing for today!");
 

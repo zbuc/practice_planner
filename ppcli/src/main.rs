@@ -18,30 +18,30 @@ use text_io::read;
 use thiserror::Error;
 
 lazy_static! {
-    pub(crate) static ref DEFAULT_CATEGORIES: Vec<PracticeCategory> = vec![
-        PracticeCategory {
-            category_name: "Ear Training".to_string(),
+    pub(crate) static ref DEFAULT_CATEGORIES: Vec<PracticeSkill> = vec![
+        PracticeSkill {
+            skill_name: "Ear Training".to_string(),
         },
-        PracticeCategory {
-            category_name: "Exercises".to_string(),
+        PracticeSkill {
+            skill_name: "Exercises".to_string(),
         },
-        PracticeCategory {
-            category_name: "Chords".to_string(),
+        PracticeSkill {
+            skill_name: "Chords".to_string(),
         },
-        PracticeCategory {
-            category_name: "Scales".to_string(),
+        PracticeSkill {
+            skill_name: "Scales".to_string(),
         },
-        PracticeCategory {
-            category_name: "Sight Reading".to_string(),
+        PracticeSkill {
+            skill_name: "Sight Reading".to_string(),
         },
-        PracticeCategory {
-            category_name: "Music Theory".to_string(),
+        PracticeSkill {
+            skill_name: "Music Theory".to_string(),
         },
-        PracticeCategory {
-            category_name: "Improvisation".to_string(),
+        PracticeSkill {
+            skill_name: "Improvisation".to_string(),
         },
-        PracticeCategory {
-            category_name: "Songwriting".to_string(),
+        PracticeSkill {
+            skill_name: "Songwriting".to_string(),
         },
     ];
 }
@@ -53,37 +53,37 @@ pub enum SchedulerError {
     //     expected: String,
     //     found: String,
     // },
-    #[error("You must have at least 4 categories to practice")]
-    MissingCategories(),
+    #[error("You must have at least 4 skills to practice")]
+    MissingSkills(),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error), // source and Display delegate to anyhow::Error
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
-pub struct PracticeSkill {
-    pub skill_name: String,
+pub struct PracticeActivity {
+    pub activity_name: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Hash, PartialOrd, Ord, PartialEq, Eq, Debug)]
-pub struct PracticeCategory {
-    pub category_name: String,
+pub struct PracticeSkill {
+    pub skill_name: String,
 }
 
 #[serde_with::serde_as]
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct SchedulePlanner {
-    /// The duration each category is to be practiced.
+    /// The duration each skill is to be practiced.
     #[serde_as(as = "serde_with::DurationSeconds<i64>")]
-    category_practice_time: Duration,
-    /// The max number of days allowed to elapse without practicing a category.
-    category_repeat_days: usize,
-    /// The number of categories to practice per day.
-    categories_per_day: usize,
-    categories: Vec<PracticeCategory>,
+    skill_practice_time: Duration,
+    /// The max number of days allowed to elapse without practicing a skill.
+    skill_repeat_days: usize,
+    /// The number of skills to practice per day.
+    skills_per_day: usize,
+    skills: Vec<PracticeSkill>,
     /// BTreeMap containing historical practice sessions.
-    history: BTreeMap<DateTime<Utc>, Vec<PracticeCategory>>,
-    todays_schedule: Option<Vec<PracticeCategory>>,
+    history: BTreeMap<DateTime<Utc>, Vec<PracticeSkill>>,
+    todays_schedule: Option<Vec<PracticeSkill>>,
 }
 
 impl SchedulePlanner {
@@ -91,32 +91,31 @@ impl SchedulePlanner {
         // Call this here so it's cached and faster later
         // let (_stream, _stream_handle) = OutputStream::try_default().unwrap();
         SchedulePlanner {
-            //category_practice_time: Duration::minutes(15),
-            category_practice_time: Duration::minutes(1),
-            category_repeat_days: 2,
-            categories: DEFAULT_CATEGORIES.to_vec(),
+            //skill_practice_time: Duration::minutes(15),
+            skill_practice_time: Duration::minutes(1),
+            skill_repeat_days: 2,
+            skills: DEFAULT_CATEGORIES.to_vec(),
             history: BTreeMap::new(),
             todays_schedule: None,
-            categories_per_day: 4,
+            skills_per_day: 4,
         }
     }
 
-    pub fn get_todays_schedule(&self) -> Option<&Vec<PracticeCategory>> {
+    pub fn get_todays_schedule(&self) -> Option<&Vec<PracticeSkill>> {
         self.todays_schedule.as_ref()
     }
 
-    /// Returns the categories seen in the last n days of history as a HashSet<&PracticeCategory>
+    /// Returns the skills seen in the last n days of history as a HashSet<&PracticeSkill>
     pub fn get_history_n_days_back(
         &self,
         n: usize,
-    ) -> Result<BTreeMap<Date<Utc>, HashSet<&PracticeCategory>>> {
+    ) -> Result<BTreeMap<Date<Utc>, HashSet<&PracticeSkill>>> {
         let now = Utc::now();
         let n_days_back = now.checked_sub_signed(Duration::days(n.try_into().unwrap()));
         if n_days_back.is_none() {
             return Err(anyhow::anyhow!("Invalid historical search term"));
         }
-        let mut historical_categories: BTreeMap<Date<Utc>, HashSet<&PracticeCategory>> =
-            BTreeMap::new();
+        let mut historical_skills: BTreeMap<Date<Utc>, HashSet<&PracticeSkill>> = BTreeMap::new();
 
         // TODO keys are sorted so we could shorten iteration here
         for (key, value) in self.history.iter() {
@@ -125,21 +124,21 @@ impl SchedulePlanner {
             if key > &n_days_back.unwrap() {
                 for v in value {
                     // insert into the HashSet for that day
-                    let day_categories = match historical_categories.contains_key(&key.date()) {
-                        true => historical_categories.get_mut(&key.date()).unwrap(),
+                    let day_skills = match historical_skills.contains_key(&key.date()) {
+                        true => historical_skills.get_mut(&key.date()).unwrap(),
                         false => {
                             let hs = HashSet::new();
-                            historical_categories.insert(key.date(), hs);
-                            historical_categories.get_mut(&key.date()).unwrap()
+                            historical_skills.insert(key.date(), hs);
+                            historical_skills.get_mut(&key.date()).unwrap()
                         }
                     };
 
-                    day_categories.insert(v);
+                    day_skills.insert(v);
                 }
             }
         }
 
-        Ok(historical_categories)
+        Ok(historical_skills)
     }
 
     /// Iterate every history item to determine the total days of history
@@ -160,34 +159,34 @@ impl SchedulePlanner {
             return Ok(());
         }
 
-        if self.categories.len() == 0 {
-            return Err(SchedulerError::MissingCategories());
+        if self.skills.len() == 0 {
+            return Err(SchedulerError::MissingSkills());
         }
 
-        let past_history = self.get_history_n_days_back(self.category_repeat_days)?;
-        let prob_bandwidth: f64 = 100.0 / self.category_repeat_days as f64;
+        let past_history = self.get_history_n_days_back(self.skill_repeat_days)?;
+        let prob_bandwidth: f64 = 100.0 / self.skill_repeat_days as f64;
 
-        let mut probabilities: BTreeMap<&PracticeCategory, u64> = BTreeMap::new();
+        let mut probabilities: BTreeMap<&PracticeSkill, u64> = BTreeMap::new();
 
-        for category in &self.categories {
+        for skill in &self.skills {
             let mut seen = false;
             let mut d = 0;
-            for (_day, day_categories) in past_history.iter() {
+            for (_day, day_skills) in past_history.iter() {
                 println!("On day: {}", _day);
-                if day_categories.contains(category) {
+                if day_skills.contains(skill) {
                     seen = true;
                 }
 
                 // if we have seen this before, weight the probability by the day seen
                 if seen {
-                    probabilities.insert(category, prob_bandwidth as u64 * d);
+                    probabilities.insert(skill, prob_bandwidth as u64 * d);
                 }
                 d = d + 1;
             }
 
-            // if any categories do not appear in last n days history at all, set probability to 100%
+            // if any skills do not appear in last n days history at all, set probability to 100%
             if !seen {
-                probabilities.insert(category, 100);
+                probabilities.insert(skill, 100);
                 continue;
             }
         }
@@ -196,25 +195,25 @@ impl SchedulePlanner {
             probabilities
                 .iter()
                 .collect::<Vec<_>>()
-                .choose_multiple_weighted(&mut thread_rng(), self.categories_per_day, |item| {
+                .choose_multiple_weighted(&mut thread_rng(), self.skills_per_day, |item| {
                     item.1.to_owned() as f64
                 })
                 .unwrap()
                 .map(|item| item.0.to_owned().to_owned())
-                .collect::<Vec<PracticeCategory>>(),
+                .collect::<Vec<PracticeSkill>>(),
         );
         return Ok(());
     }
 
-    pub fn start_category(&self, category: &PracticeCategory) -> Result<()> {
+    pub fn start_skill(&self, skill: &PracticeSkill) -> Result<()> {
         println!(
-            "Starting {} minute practice for category: {:#?}",
-            self.category_practice_time.num_minutes(),
-            category
+            "Starting {} minute practice for skill: {:#?}",
+            self.skill_practice_time.num_minutes(),
+            skill
         );
 
-        thread::sleep(self.category_practice_time.to_std()?);
-        println!("Done practicing category: {:#?}", category);
+        thread::sleep(self.skill_practice_time.to_std()?);
+        println!("Done practicing skill: {:#?}", skill);
         // self.play_ding_sound();
 
         Ok(())
@@ -240,9 +239,9 @@ impl SchedulePlanner {
     pub fn start_daily_practice(&mut self) -> Result<()> {
         // ensure today's schedule has been set
         self.update_todays_schedule(false)?;
-        for category in self.todays_schedule.as_ref().unwrap().iter() {
-            println!("Starting practice for category: {:#?}", category);
-            self.start_category(&category)?;
+        for skill in self.todays_schedule.as_ref().unwrap().iter() {
+            println!("Starting practice for skill: {:#?}", skill);
+            self.start_skill(&skill)?;
         }
         println!("Finished practicing for today!");
 
@@ -327,6 +326,6 @@ fn main() {
     };
 }
 
-pub fn get_todays_schedule() -> Result<Vec<PracticeCategory>> {
+pub fn get_todays_schedule() -> Result<Vec<PracticeSkill>> {
     Ok(vec![])
 }

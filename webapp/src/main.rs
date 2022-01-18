@@ -28,7 +28,7 @@ use crate::components::audio_player::*;
 use crate::components::event_bus::{EventBus, Request};
 use crate::components::modal::*;
 use crate::components::tabs::*;
-use pplib::{PracticeCategory, SchedulePlanner};
+use pplib::{PracticeSkill, SchedulePlanner};
 
 mod bindings;
 mod components;
@@ -53,10 +53,11 @@ pub enum Msg {
     OpenModal,
     ShowHelp,
     SetHelp,
-    SelectCategory(HtmlOptionElement),
-    ShowDeleteCategoryPrompt,
+    SelectSkill(HtmlOptionElement),
+    ShowDeleteSkillPrompt,
     ShowResetSettingsPrompt,
     ResetSettings,
+    DeleteSkill,
 }
 
 // Splitting this out makes local debugging easier
@@ -80,13 +81,13 @@ pub struct PracticePlannerApp {
     // the web app allows users to set practice time in terms of minutes
     practice_minutes: usize,
     // TODO this should really be a prop in a Settings (sub)component
-    selected_category: Option<String>,
+    selected_skill: Option<String>,
 }
 
 impl PracticePlannerApp {
-    fn view_category(
+    fn view_skill(
         &self,
-        (idx, category): (usize, &PracticeCategory),
+        (idx, skill): (usize, &PracticeSkill),
         active_idx: Option<usize>,
         practicing: bool,
         _link: &Scope<Self>,
@@ -95,11 +96,11 @@ impl PracticePlannerApp {
         let active = active_idx.unwrap_or_default();
         let mut class = Classes::from("todo");
         if practicing && active as usize == idx {
-            class.push("active-category");
+            class.push("active-skill");
         } else if practicing && active as usize > idx {
-            class.push("completed-category")
+            class.push("completed-skill")
         }
-        log::debug!("making the category item");
+        log::debug!("making the skill item");
         html! {
             <li {class}>
                 <div class="view">
@@ -109,16 +110,16 @@ impl PracticePlannerApp {
                         checked={practicing && active as usize > idx}
                         disabled=true
                     />
-                    <label>{ &category.category_name}</label>
+                    <label>{ &skill.skill_name}</label>
                 </div>
-                // { self.view_entry_edit_input((idx, category), link) }
+                // { self.view_entry_edit_input((idx, skill), link) }
             </li>
         }
     }
 
     fn view_history_list(
         &self,
-        history_list: BTreeMap<Date<Utc>, HashSet<&PracticeCategory>>,
+        history_list: BTreeMap<Date<Utc>, HashSet<&PracticeSkill>>,
         _link: &Scope<Self>,
     ) -> Html {
         let _class = Classes::from("todo");
@@ -133,8 +134,8 @@ impl PracticePlannerApp {
         // XXX TODO convert to a table view https://bulma.io/documentation/elements/table/
         let hl = history_list
             .iter()
-            .map(|(day, day_categories)| {
-                let mut dc = day_categories
+            .map(|(day, day_skills)| {
+                let mut dc = day_skills
                     .iter()
                     .map(|cat| format!("{}", cat))
                     .collect::<Vec<_>>();
@@ -166,7 +167,7 @@ impl PracticePlannerApp {
 
         html! {
             <>
-            {self.view_category_list(&self.scheduler.practice_session, link)}
+            {self.view_skill_list(&self.scheduler.practice_session, link)}
             <nav class="level">
                 // Left side
                 <div class="level-left">
@@ -202,7 +203,7 @@ impl PracticePlannerApp {
                 <div class="level-right">
                     <div class="level-item">
                         <div class="icon-text">
-                            <a title="Shuffle Today's Categories" onclick={link.callback(|_| Msg::ShuffleToday)}>
+                            <a title="Shuffle Today's Skills" onclick={link.callback(|_| Msg::ShuffleToday)}>
                                 <span class="icon is-medium has-text-success">
                                     <i class="fas fa-random fa-lg"></i>
                                 </span>
@@ -215,25 +216,25 @@ impl PracticePlannerApp {
         }
     }
 
-    fn view_category_list(
+    fn view_skill_list(
         &self,
         practice_session: &Option<PracticeSession>,
         link: &Scope<Self>,
     ) -> Html {
-        log::debug!("making the category list");
+        log::debug!("making the skill list");
         let active = match practice_session {
-            Some(ps) => Some(ps.get_current_category_idx()),
+            Some(ps) => Some(ps.get_current_skill_idx()),
             None => None,
         };
         let practicing = self.scheduler.practicing;
 
         html! {
             <>
-            <ul class="category-list">
+            <ul class="skill-list">
             {
                 if self.scheduler.get_todays_schedule().is_some() {
                     log::debug!("got a schedule for today");
-                    html! { for self.scheduler.get_todays_schedule().unwrap().iter().enumerate().map(|e| self.view_category(e, active, practicing, link)) }
+                    html! { for self.scheduler.get_todays_schedule().unwrap().iter().enumerate().map(|e| self.view_skill(e, active, practicing, link)) }
                 } else {
                     log::debug!("no schedule available :(");
                     html! {}
@@ -269,7 +270,7 @@ impl Component for PracticePlannerApp {
             }
         };
 
-        let practice_minutes = scheduler.config.category_practice_time.num_minutes() as usize;
+        let practice_minutes = scheduler.config.skill_practice_time.num_minutes() as usize;
 
         let current_time = get_current_time();
         scheduler
@@ -309,7 +310,7 @@ impl Component for PracticePlannerApp {
                 modal_type: "info".to_string(),
                 first_page_view,
                 practice_minutes,
-                selected_category: None,
+                selected_skill: None,
             }
         } else {
             Self {
@@ -324,7 +325,7 @@ impl Component for PracticePlannerApp {
                 modal_type: "danger".to_string(),
                 first_page_view,
                 practice_minutes,
-                selected_category: None,
+                selected_skill: None,
             }
         }
     }
@@ -428,12 +429,12 @@ impl Component for PracticePlannerApp {
                         .practice_session
                         .as_ref()
                         .unwrap()
-                        .category_start_time,
+                        .skill_start_time,
                 );
-                let total_time = self.scheduler.config.category_practice_time;
+                let total_time = self.scheduler.config.skill_practice_time;
 
                 if time_elapsed > total_time {
-                    // move to next category
+                    // move to next skill
                     self.scheduler
                         .advance_practice_session(now)
                         .expect("unable to advance");
@@ -470,9 +471,9 @@ impl Component for PracticePlannerApp {
                     .practice_session
                     .as_mut()
                     .unwrap()
-                    .category_start_time = current_time;
+                    .skill_start_time = current_time;
                 self.scheduler.practice_session.as_mut().unwrap().time_left =
-                    self.scheduler.config.category_practice_time;
+                    self.scheduler.config.skill_practice_time;
                 let handle = {
                     let link = ctx.link().clone();
                     Interval::new(100, move || link.send_message(Msg::PracticeTick))
@@ -540,14 +541,14 @@ impl Component for PracticePlannerApp {
                 self.modal_type = "info".to_string();
                 return false;
             }
-            Msg::SelectCategory(opt) => {
+            Msg::SelectSkill(opt) => {
                 // display the delete icon next to it
-                log::debug!("SelectCategory");
-                self.selected_category = Some(opt.value());
+                log::debug!("SelectSkill");
+                self.selected_skill = Some(opt.value());
                 return true;
             }
-            Msg::ShowDeleteCategoryPrompt => {
-                log::debug!("ShowDeleteCategoryPrompt");
+            Msg::ShowDeleteSkillPrompt => {
+                log::debug!("ShowDeleteSkillPrompt");
                 // display a prompt because this is a pretty srs irreversible move
 
                 self.displaying_modal = true;
@@ -561,18 +562,21 @@ impl Component for PracticePlannerApp {
                     <p>{"This is "}<strong>{"irreversible"}</strong>{", and you will also delete any activities associated with this skill."}</p>
                     <div>
                         <div class="icon-text">
-                            <a title="Reset History" onclick={ctx.link().callback(|_| Msg::ResetHistory)}>
+                            <a title="Delete Skill" onclick={ctx.link().callback(|_| Msg::DeleteSkill)}>
                                 <span class="icon is-medium">
                                     <i class="fas fa-trash fa-lg"></i>
                                 </span>
                             </a>
                         </div>
-                        <a title="Reset History" onclick={ctx.link().callback(|_| Msg::ResetHistory)}>
-                        {"Reset History"}
+                        <a title="Delete Skill" onclick={ctx.link().callback(|_| Msg::DeleteSkill)}>
+                        {"Delete Skill"}
                         </a>
                         </div>
                     </div>
                 };
+            }
+            Msg::DeleteSkill => {
+                log::debug!("DeleteSkill");
             }
         }
 
@@ -606,12 +610,12 @@ impl Component for PracticePlannerApp {
             on_tab_change: ctx.link().callback(|i: usize| Msg::ChangeTab(i)),
         };
 
-        let active_category: Option<Rc<PracticeCategory>> =
+        let active_skill: Option<Rc<PracticeSkill>> =
             match &self.scheduler.practice_session.as_ref() {
-                Some(ps) => Some(Rc::clone(&ps.current_category)),
+                Some(ps) => Some(Rc::clone(&ps.current_skill)),
                 None => None,
             };
-        let visible_exercise_md = match active_category {
+        let visible_exercise_md = match active_skill {
             Some(ac) => ac.exercises[0].exercise_markdown_contents.clone(),
             None => "".to_string(),
         };
@@ -626,17 +630,17 @@ impl Component for PracticePlannerApp {
 
         let current_time = get_current_time();
         let streak = self.scheduler.get_streak(current_time);
-        let _category_list = self.scheduler.get_todays_schedule();
+        let _skill_list = self.scheduler.get_todays_schedule();
         // TODO use a constant here
         let history_list = self
             .scheduler
             .get_history_n_days_back(3, current_time)
             .expect("unable to retrieve history");
 
-        let cl = self.scheduler.config.categories
+        let cl = self.scheduler.config.skills
                 .iter()
-                .map(|category| {
-                    html! { <option value={category.category_name.clone()} onclick={ctx.link().callback(|e: MouseEvent| Msg::SelectCategory(e.target_unchecked_into::<HtmlOptionElement>()))}>{category.category_name.clone()}</option> }
+                .map(|skill| {
+                    html! { <option value={skill.skill_name.clone()} onclick={ctx.link().callback(|e: MouseEvent| Msg::SelectSkill(e.target_unchecked_into::<HtmlOptionElement>()))}>{skill.skill_name.clone()}</option> }
                 })
                 .collect::<Vec<_>>();
         html! {
@@ -680,19 +684,19 @@ impl Component for PracticePlannerApp {
                         </button>
                     } else if self.active_tab == 2 {
                         <p>
-                        <label for="category_list">{"Skills"}</label>
+                        <label for="skill_list">{"Skills"}</label>
                         </p>
                         <div class="select is-multiple">
-                        <select id="category_list" multiple=true>
+                        <select id="skill_list" multiple=true>
                             { cl }
                         </select>
                         </div>
 
                         {
-                            if self.selected_category.is_some() {
+                            if self.selected_skill.is_some() {
                                 html! {
                                     <div class="icon-text">
-                                        <a title="Delete Category" onclick={ctx.link().callback(|_| Msg::ShowDeleteCategoryPrompt)}>
+                                        <a title="Delete Skill" onclick={ctx.link().callback(|_| Msg::ShowDeleteSkillPrompt)}>
                                             <span class="icon is-medium has-text-success">
                                                 <i class="fas fa-trash fa-lg"></i>
                                             </span>
@@ -704,11 +708,11 @@ impl Component for PracticePlannerApp {
                             }
                         }
 
-                        <p><label for="category_minutes">{"Minutes to Practice Each Skill"}</label></p>
-                        <input id="category_minutes" class="input is-primary" type="text" placeholder="15" value={format!("{}", self.practice_minutes)} />
+                        <p><label for="skill_minutes">{"Minutes to Practice Each Skill"}</label></p>
+                        <input id="skill_minutes" class="input is-primary" type="text" placeholder="15" value={format!("{}", self.practice_minutes)} />
 
-                        <p><label for="category_count">{"Number of Skills to Practice Per Day"}</label></p>
-                        <input id="category_count" class="input is-primary" type="text" placeholder="4" value={format!("{}", self.scheduler.config.categories_per_day)} />
+                        <p><label for="skill_count">{"Number of Skills to Practice Per Day"}</label></p>
+                        <input id="skill_count" class="input is-primary" type="text" placeholder="4" value={format!("{}", self.scheduler.config.skills_per_day)} />
 
                         <button class="favorite styled"
                                 type="button"
