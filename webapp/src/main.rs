@@ -16,6 +16,8 @@ use hhmmss::Hhmmss;
 use log;
 use pplib::PracticeSession;
 use pulldown_cmark::{html::push_html, Options, Parser};
+use wasm_bindgen::JsCast;
+use web_sys::HtmlInputElement;
 use web_sys::{HtmlOptionElement, MouseEvent};
 #[allow(unused_imports)]
 use yew::prelude::*;
@@ -57,6 +59,7 @@ pub enum Msg {
     ShowDeleteSkillPrompt,
     ShowResetSettingsPrompt,
     ResetSettings,
+    SaveSettings,
     DeleteSkill,
 }
 
@@ -292,7 +295,7 @@ impl Component for PracticePlannerApp {
                 displaying_modal: true,
                 modal_content: html! {
                     <div>
-                    <p>{"Welcome to Guitar Practice Planner. It's easy to get started."}</p>
+                    <p>{"Welcome to Practice Planner. It's easy to get started."}</p>
                     <p>{"The entire app is built around the idea of making it easy for a musician to sit and have an effective practice session that works towards their individual goals."}</p>
                     <p>{"Once you've set the app up to your liking, you'll be able to jump into a practice session as soon as you open the app."}</p>
                     <p>{"The way this works is through "}<strong>{"Skills"}</strong>{" and "}<strong>{"Activities"}</strong>{"."}</p>
@@ -332,6 +335,27 @@ impl Component for PracticePlannerApp {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
+            Msg::SaveSettings => {
+                // TODO: there has to be a better way to handle forms than this, but it was easy for now
+                // fetch form values
+                let window = web_sys::window().expect("no global `window` exists");
+                let document = window.document().expect("should have a document on window");
+                let skill_minutes_el = document
+                    .get_element_by_id("skill_minutes")
+                    .expect("should have a skill minutes element")
+                    .unchecked_into::<HtmlInputElement>();
+                let skill_count_el = document
+                    .get_element_by_id("skill_count")
+                    .expect("should have a skill count element")
+                    .unchecked_into::<HtmlInputElement>();
+                let skill_minutes = skill_minutes_el.value();
+                let skill_count = skill_count_el.value();
+                // validate
+
+                log::debug!("{} {}", skill_minutes, skill_count);
+                // set on self
+                // persist to localstorage
+            }
             Msg::ShowResetSettingsPrompt => {
                 self.displaying_modal = true;
                 self.modal_closed = false;
@@ -507,7 +531,7 @@ impl Component for PracticePlannerApp {
                 self.modal_closed = false;
                 self.modal_content = html! {
                     <div>
-                    <p>{"Welcome to Guitar Practice Planner. It's easy to get started."}</p>
+                    <p>{"Welcome to Practice Planner. It's easy to get started."}</p>
                     <p>{"The entire app is built around the idea of making it easy for a musician to sit and have an effective practice session that works towards their individual goals."}</p>
                     <p>{"Once you've set the app up to your liking, you'll be able to jump into a practice session as soon as you open the app."}</p>
                     <p>{"The way this works is through "}<strong>{"Skills"}</strong>{" and "}<strong>{"Activities"}</strong>{"."}</p>
@@ -531,7 +555,7 @@ impl Component for PracticePlannerApp {
                 self.modal_closed = false;
                 self.modal_content = html! {
                     <div>
-                    <p>{"Welcome to Guitar Practice Planner. It's easy to get started."}</p>
+                    <p>{"Welcome to Practice Planner. It's easy to get started."}</p>
                     <p>{"The entire app is built around the idea of making it easy for a musician to sit and have an effective practice session that works towards their individual goals."}</p>
                     <p>{"Once you've set the app up to your liking, you'll be able to jump into a practice session as soon as you open the app."}</p>
                     <p>{"The way this works is through "}<strong>{"Skills"}</strong>{" and "}<strong>{"Activities"}</strong>{"."}</p>
@@ -673,10 +697,7 @@ impl Component for PracticePlannerApp {
             <section class="hero is-primary">
                 <div class="hero-body">
                     <p class="title">
-                    {"Guitar Practice Planner"}
-                    </p>
-                    <p class="subtitle">
-                      {"You know, for learning to play guitar"}
+                    {"Practice Planner"}
                     </p>
                 </div>
             </section>
@@ -742,6 +763,13 @@ impl Component for PracticePlannerApp {
                                 onclick={ctx.link().callback(|_| Msg::ShowResetSettingsPrompt)}
                                 >
                                 {"Reset Settings to Default"}
+                        </button>
+
+                        <button class="favorite styled"
+                                type="button"
+                                onclick={ctx.link().callback(|_| Msg::SaveSettings)}
+                                >
+                                {"Save Changes"}
                         </button>
                     }
                     </div>
