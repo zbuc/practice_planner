@@ -841,7 +841,13 @@ impl Component for PracticePlannerApp {
                     if self.active_tab == 0 {
 
                     <div class="tile is-child content app-panel">
-                        {rendered_exercise}
+                        {if self.scheduler.practicing {
+
+                        rendered_exercise
+                        } else {
+                            html! {<></>}
+                        }
+                        }
 
                         <nav class="level content is-large is-mobile">
                             // Left side
