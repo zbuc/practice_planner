@@ -845,7 +845,9 @@ impl Component for PracticePlannerApp {
 
                         <nav class="level content is-large is-mobile">
                             // Left side
-                            <div class="level-left">
+                            { if self.scheduler.practicing {
+
+                            html!(<><div class="level-left">
                                 <div class="level-item">
                                     <div class="icon-text">
                                         <a title="Previous Exercise" onclick={ctx.link().callback(|_| Msg::PreviousExercise)}>
@@ -866,7 +868,11 @@ impl Component for PracticePlannerApp {
                                         </a>
                                     </div>
                                 </div>
-                            </div>
+                            </div></>)
+                            } else {
+                                html!(<></>)
+                            }
+                        }
                         </nav>
 
                     </div>
