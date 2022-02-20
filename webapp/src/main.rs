@@ -199,6 +199,7 @@ impl PracticePlannerApp {
                         }
                     } else {
                         html!{
+                            <>
                             <div class="level-item">
                                 <div class="icon-text">
                                     <a title="Start Practicing" onclick={link.callback(|_| Msg::StartPracticing)}>
@@ -208,20 +209,30 @@ impl PracticePlannerApp {
                                     </a>
                                 </div>
                             </div>
+                            <div class="level-item">
+                                <div class="icon-text">
+                                    <a title="Shuffle Today's Skills" onclick={link.callback(|_| Msg::ShuffleToday)}>
+                                        <span class="icon is-medium has-text-success">
+                                            <i class="fas fa-random fa-lg"></i>
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                            </>
                         }
                     }}
                 </div>
                 // Right side
                 <div class="level-right">
-                    <div class="level-item">
-                        <div class="icon-text">
-                            <a title="Shuffle Today's Skills" onclick={link.callback(|_| Msg::ShuffleToday)}>
-                                <span class="icon is-medium has-text-success">
-                                    <i class="fas fa-random fa-lg"></i>
-                                </span>
-                            </a>
-                        </div>
-                    </div>
+                    // <div class="level-item">
+                    //     <div class="icon-text">
+                    //         <a title="Shuffle Today's Skills" onclick={link.callback(|_| Msg::ShuffleToday)}>
+                    //             <span class="icon is-medium has-text-success">
+                    //                 <i class="fas fa-random fa-lg"></i>
+                    //             </span>
+                    //         </a>
+                    //     </div>
+                    // </div>
                 </div>
             </nav>
             </>
