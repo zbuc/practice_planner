@@ -8,9 +8,9 @@ use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
-use std::ops::Index;
 use std::ops::Sub;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use anyhow::Result;
 use chrono::{Date, DateTime, Duration, Utc};
@@ -27,7 +27,7 @@ lazy_static! {
         PracticeSkill {
             skill_name: "Ear Training".to_string(),
             exercises: vec![
-                PracticeExercise {
+                Arc::new(PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
                             "# Ear Training Exercises
@@ -37,8 +37,8 @@ Perform one of the exercises from [Justinguitar](https://www.justinguitar.com/gu
 
 ".to_string(),
 
-            },
-            PracticeExercise {
+            }),
+            Arc::new(PracticeExercise {
                 exercise_name: "Exercise 2".to_string(),
                 exercise_markdown_contents:
                             "# Ear Training Exercises
@@ -48,12 +48,12 @@ Play random two-note dyads and try to identify the intervals by sound.
 
 ".to_string(),
 
-            },
+            }),
             ]
         },
         PracticeSkill {
             skill_name: "Left Hand Exercises".to_string(),
-            exercises: vec![PracticeExercise {
+            exercises: vec![Arc::new(PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
             "# Left Hand Exercises
@@ -75,11 +75,11 @@ options space=25
 </div>
 ".to_string(),
 
-            }]
+            })]
         },
         PracticeSkill {
             skill_name: "Alternate Picking Exercises".to_string(),
-            exercises: vec![PracticeExercise {
+            exercises: vec![Arc::new(PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
                             "# Alternate Picking Exercises
@@ -104,11 +104,11 @@ options space=25
 
 ".to_string(),
 
-            }]
+            })]
         },
         PracticeSkill {
             skill_name: "Chords".to_string(),
-            exercises: vec![PracticeExercise {
+            exercises: vec![Arc::new(PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
                             "# Chord Exercises
@@ -120,11 +120,11 @@ Move up to the next position and repeat.
 
 ".to_string(),
 
-            }]
+            })]
         },
         PracticeSkill {
             skill_name: "Scales".to_string(),
-            exercises: vec![PracticeExercise {
+            exercises: vec![Arc::new(PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
                             "# Scale Exercises
@@ -134,11 +134,11 @@ Play a scale to a metronome in different positions. Increase the tempo after you
 
 ".to_string(),
 
-            }]
+            })]
         },
         PracticeSkill {
             skill_name: "Sight Reading".to_string(),
-            exercises: vec![PracticeExercise {
+            exercises: vec![Arc::new(PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
                             "# Sight Reading Exercises
@@ -158,11 +158,11 @@ options space=25
 </div>
 ".to_string(),
 
-            }]
+            })]
         },
         PracticeSkill {
             skill_name: "Music Theory".to_string(),
-            exercises: vec![PracticeExercise {
+            exercises: vec![Arc::new(PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
                             "# Music Theory Exercises
@@ -172,11 +172,11 @@ For every note A to G, play the note and then the relative minor.
 
 ".to_string(),
 
-            }]
+            })]
         },
         PracticeSkill {
             skill_name: "Improvisation".to_string(),
-            exercises: vec![PracticeExercise {
+            exercises: vec![Arc::new(PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
                             "# Improvisation Exercises
@@ -186,11 +186,11 @@ Play along to a backing track.
 
 ".to_string(),
 
-            }]
+            })]
         },
         PracticeSkill {
             skill_name: "Songwriting".to_string(),
-            exercises: vec![PracticeExercise {
+            exercises: vec![Arc::new(PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
                             "# Songwriting Exercises
@@ -202,11 +202,11 @@ Maybe you could write about your song here.
 
 ".to_string(),
 
-            }]
+            })]
         },
         PracticeSkill {
             skill_name: "Rhythm".to_string(),
-            exercises: vec![PracticeExercise {
+            exercises: vec![Arc::new(PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
                             "# Rhythm Exercises
@@ -218,11 +218,11 @@ Alternate playing whole measures as quarter notes and eighth notes.
 
 ".to_string(),
 
-            }]
+            })]
         },
         PracticeSkill {
             skill_name: "Learn A Song".to_string(),
-            exercises: vec![PracticeExercise {
+            exercises: vec![Arc::new(PracticeExercise {
                 exercise_name: "Exercise 1".to_string(),
                 exercise_markdown_contents:
                             "# Learn A Song
@@ -236,7 +236,7 @@ You can embed videos here, for example:
 
 ".to_string(),
 
-            }]
+            })]
         },
     ];
 }
@@ -264,7 +264,7 @@ pub struct PracticeExercise {
 #[derive(Serialize, Deserialize, Clone, Hash, PartialOrd, Ord, PartialEq, Eq, Debug)]
 pub struct PracticeSkill {
     pub skill_name: String,
-    pub exercises: Vec<PracticeExercise>,
+    pub exercises: Vec<Arc<PracticeExercise>>,
 }
 
 impl fmt::Display for PracticeSkill {
@@ -303,9 +303,12 @@ pub struct SchedulePlanner<'a> {
 pub struct PracticeSession<'a> {
     // TODO these could be references to the state on SchedulePlanner
     // but the lifetimes got annoying and I gave up and there is some
-    // duplicated data
+    // duplicated data right now, we aren't using Rc right and it should
+    // probably be Arc anyhow
     pub schedule: Vec<Rc<PracticeSkill>>,
     pub current_skill: Rc<PracticeSkill>,
+    pub current_exercise: Option<Arc<PracticeExercise>>,
+    // TODO: this isn't used at all
     pub completed: HashMap<&'a PracticeSkill, bool>,
     pub time_left: Duration,
     pub start_time: DateTime<Utc>,
@@ -325,8 +328,55 @@ impl<'a> PracticeSession<'a> {
             // TODO maybe make an Option type
             start_time: current_time,
             skill_start_time: current_time,
+            current_exercise: None,
         }
     }
+
+    pub fn next_exercise(&mut self) {
+        // if current exercise is none, use the first exercise
+        if self.current_exercise.is_none() {
+            // TODO: what if there are no exercises?
+            self.current_exercise = Some(self.current_skill.exercises[0].clone());
+            return;
+        }
+
+        let current_exercise_idx = self
+            .current_skill
+            .exercises
+            .iter()
+            .position(|e| *e == self.current_exercise.clone().unwrap())
+            .unwrap();
+
+        if current_exercise_idx + 1 < self.current_skill.exercises.len() {
+            // can't go past the last exercise
+            return;
+        }
+
+        self.current_exercise =
+            Some(self.current_skill.exercises[current_exercise_idx + 1].clone());
+    }
+
+    pub fn previous_exercise(&mut self) {
+        // if current exercise is none, use the first exercise
+        if self.current_exercise.is_none() {
+            // TODO: what if there are no exercises?
+            self.current_exercise = Some(self.current_skill.exercises[0].clone());
+            return;
+        }
+
+        let current_exercise_idx = self
+            .current_skill
+            .exercises
+            .iter()
+            .position(|e| *e == self.current_exercise.clone().unwrap())
+            .unwrap();
+
+        // min(usize) == 0
+        // so we don't need to worry about underflow here
+        self.current_exercise =
+            Some(self.current_skill.exercises[current_exercise_idx - 1].clone());
+    }
+
     pub fn set_time_left(&mut self, time_left: Duration) {
         self.time_left = time_left;
     }

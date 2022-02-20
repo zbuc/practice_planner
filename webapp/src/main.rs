@@ -63,6 +63,8 @@ pub enum Msg {
     SaveSettings,
     DeleteSkill,
     PausePracticing,
+    NextExercise,
+    PreviousExercise,
 }
 
 // Splitting this out makes local debugging easier
@@ -228,15 +230,6 @@ impl PracticePlannerApp {
                 </div>
                 // Right side
                 <div class="level-right">
-                    // <div class="level-item">
-                    //     <div class="icon-text">
-                    //         <a title="Shuffle Today's Skills" onclick={link.callback(|_| Msg::ShuffleToday)}>
-                    //             <span class="icon is-medium has-text-success">
-                    //                 <i class="fas fa-random fa-lg"></i>
-                    //             </span>
-                    //         </a>
-                    //     </div>
-                    // </div>
                 </div>
             </nav>
             </>
@@ -362,6 +355,20 @@ impl Component for PracticePlannerApp {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
+            Msg::NextExercise => {
+                self.scheduler
+                    .practice_session
+                    .as_mut()
+                    .unwrap()
+                    .next_exercise();
+            }
+            Msg::PreviousExercise => {
+                self.scheduler
+                    .practice_session
+                    .as_mut()
+                    .unwrap()
+                    .previous_exercise();
+            }
             Msg::SaveSettings => {
                 // TODO: there has to be a better way to handle forms than this, but it was easy for now
                 // fetch form values
@@ -722,6 +729,7 @@ impl Component for PracticePlannerApp {
             Some(ac) => ac.exercises[0].exercise_markdown_contents.clone(),
             None => "".to_string(),
         };
+
         // TODO split the individual tab contents into their own components
         let parse_html = parse_markdown_text(&visible_exercise_md);
         let html_text = format!("<div class='preview'>{}</div>", &parse_html);
@@ -729,7 +737,7 @@ impl Component for PracticePlannerApp {
         let document = window.document().expect("should have a document on window");
         let val = document.create_element("div").unwrap();
         val.set_inner_html(&html_text);
-        let preview = VNode::VRef(val.into());
+        let rendered_exercise = VNode::VRef(val.into());
 
         let current_time = get_current_time();
         let streak = self.scheduler.get_streak(current_time);
@@ -833,14 +841,14 @@ impl Component for PracticePlannerApp {
                     if self.active_tab == 0 {
 
                     <div class="tile is-child content app-panel">
-                        {preview}
+                        {rendered_exercise}
 
                         <nav class="level content is-large is-mobile">
                             // Left side
                             <div class="level-left">
                                 <div class="level-item">
                                     <div class="icon-text">
-                                        <a title="Previous Exercise" onclick={ctx.link().callback(|_| Msg::ShuffleToday)}>
+                                        <a title="Previous Exercise" onclick={ctx.link().callback(|_| Msg::PreviousExercise)}>
                                             <span class="icon is-medium has-text-success">
                                                 <i class="fas fa-long-arrow-alt-left fa-lg"></i>
                                             </span>
@@ -851,7 +859,7 @@ impl Component for PracticePlannerApp {
                             <div class="level-right">
                                 <div class="level-item">
                                     <div class="icon-text">
-                                        <a title="Next Exercise" onclick={ctx.link().callback(|_| Msg::ShuffleToday)}>
+                                        <a title="Next Exercise" onclick={ctx.link().callback(|_| Msg::NextExercise)}>
                                             <span class="icon is-medium has-text-success">
                                                 <i class="fas fa-long-arrow-alt-right fa-lg"></i>
                                             </span>
