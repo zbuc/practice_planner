@@ -309,7 +309,7 @@ async function load(module, imports) {
 
 async function init(input) {
     if (typeof input === 'undefined') {
-        input = new URL('index-5fe86db828feb6c_bg.wasm', import.meta.url);
+        input = new URL('index-8a1267fc59412a88_bg.wasm', import.meta.url);
     }
     const imports = {};
     imports.wbg = {};
@@ -695,15 +695,15 @@ async function init(input) {
         return addHeapObject(ret);
     };
     imports.wbg.__wbindgen_closure_wrapper279 = function(arg0, arg1, arg2) {
-        var ret = makeMutClosure(arg0, arg1, 67, __wbg_adapter_28);
+        var ret = makeMutClosure(arg0, arg1, 68, __wbg_adapter_28);
         return addHeapObject(ret);
     };
     imports.wbg.__wbindgen_closure_wrapper668 = function(arg0, arg1, arg2) {
-        var ret = makeClosure(arg0, arg1, 266, __wbg_adapter_31);
+        var ret = makeClosure(arg0, arg1, 267, __wbg_adapter_31);
         return addHeapObject(ret);
     };
     imports.wbg.__wbindgen_closure_wrapper802 = function(arg0, arg1, arg2) {
-        var ret = makeMutClosure(arg0, arg1, 306, __wbg_adapter_34);
+        var ret = makeMutClosure(arg0, arg1, 307, __wbg_adapter_34);
         return addHeapObject(ret);
     };
     imports['./snippets/webapp-9efd290294e319f9/assets/js/tablature.js'] = __wbg_star0;
