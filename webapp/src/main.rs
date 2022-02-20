@@ -9,6 +9,7 @@ use std::ops::Sub;
 use std::rc::Rc;
 
 use anyhow::Result;
+use chrono::Duration;
 use chrono::{Date, DateTime, Utc};
 use gloo::storage::{LocalStorage, Storage};
 use gloo::timers::callback::Interval;
@@ -350,11 +351,19 @@ impl Component for PracticePlannerApp {
                     .unchecked_into::<HtmlInputElement>();
                 let skill_minutes = skill_minutes_el.value();
                 let skill_count = skill_count_el.value();
-                // validate
 
+                // validate
                 log::debug!("{} {}", skill_minutes, skill_count);
+                let skill_minutes = skill_minutes.parse::<i64>().unwrap();
+                let skill_count = skill_count.parse::<usize>().unwrap();
+
                 // set on self
+                self.scheduler.config.skill_practice_time = Duration::minutes(skill_minutes);
+                self.scheduler.config.skills_per_day = skill_count;
+
                 // persist to localstorage
+                self.save().expect("able to save");
+                return false;
             }
             Msg::ShowResetSettingsPrompt => {
                 self.displaying_modal = true;
