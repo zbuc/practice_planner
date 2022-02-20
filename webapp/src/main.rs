@@ -74,7 +74,7 @@ pub fn get_current_time() -> DateTime<Utc> {
 }
 
 pub struct PracticePlannerApp {
-    scheduler: SchedulePlanner<'static>,
+    scheduler: SchedulePlanner,
     interval: Option<Interval>,
     event_bus: Dispatcher<EventBus>,
     // TODO consider using yewdux for all this

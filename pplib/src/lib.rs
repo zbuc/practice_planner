@@ -287,7 +287,7 @@ pub struct PlannerConfiguration {
 }
 
 #[derive(Debug)]
-pub struct SchedulePlanner<'a> {
+pub struct SchedulePlanner {
     pub config: PlannerConfiguration,
     /// BTreeMap containing historical practice sessions.
     pub history: BTreeMap<DateTime<Utc>, Vec<PracticeSkill>>,
@@ -295,12 +295,12 @@ pub struct SchedulePlanner<'a> {
     /// Whether a practice session is currently underway
     pub practicing: bool,
     /// The in-progress practice session
-    pub practice_session: Option<PracticeSession<'a>>,
+    pub practice_session: Option<PracticeSession>,
 }
 
 /// Practice sessions. If one exists, it is active.
 #[derive(Debug)]
-pub struct PracticeSession<'a> {
+pub struct PracticeSession {
     // TODO these could be references to the state on SchedulePlanner
     // but the lifetimes got annoying and I gave up and there is some
     // duplicated data right now, we aren't using Rc right and it should
@@ -308,14 +308,12 @@ pub struct PracticeSession<'a> {
     pub schedule: Vec<Rc<PracticeSkill>>,
     pub current_skill: Rc<PracticeSkill>,
     pub current_exercise: Option<Arc<PracticeExercise>>,
-    // TODO: this isn't used at all
-    pub completed: HashMap<&'a PracticeSkill, bool>,
     pub time_left: Duration,
     pub start_time: DateTime<Utc>,
     pub skill_start_time: DateTime<Utc>,
 }
 
-impl<'a> PracticeSession<'a> {
+impl PracticeSession {
     pub fn new(schedule: Vec<PracticeSkill>, current_time: DateTime<Utc>) -> Self {
         let schedule: Vec<Rc<PracticeSkill>> =
             schedule.iter().map(|c| Rc::new(c.clone())).collect();
@@ -323,7 +321,6 @@ impl<'a> PracticeSession<'a> {
         PracticeSession {
             schedule: schedule.to_owned(),
             current_skill: Rc::clone(current_skill),
-            completed: HashMap::new(),
             time_left: Duration::seconds(0),
             // TODO maybe make an Option type
             start_time: current_time,
@@ -425,7 +422,7 @@ impl<'a> PracticeSession<'a> {
     // }
 }
 
-impl<'a> SchedulePlanner<'_> {
+impl<'a> SchedulePlanner {
     pub fn new() -> Self {
         SchedulePlanner {
             config: PlannerConfiguration {
