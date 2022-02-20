@@ -5,6 +5,7 @@ extern crate lazy_static;
 // use std;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
+use std::ops::Add;
 use std::ops::Sub;
 use std::rc::Rc;
 
@@ -14,7 +15,6 @@ use chrono::{Date, DateTime, Utc};
 use gloo::storage::{LocalStorage, Storage};
 use gloo::timers::callback::Interval;
 use hhmmss::Hhmmss;
-use log;
 use pplib::PracticeSession;
 use pulldown_cmark::{html::push_html, Options, Parser};
 use wasm_bindgen::JsCast;
@@ -62,6 +62,7 @@ pub enum Msg {
     ResetSettings,
     SaveSettings,
     DeleteSkill,
+    PausePracticing,
 }
 
 // Splitting this out makes local debugging easier
@@ -86,6 +87,9 @@ pub struct PracticePlannerApp {
     practice_minutes: usize,
     // TODO this should really be a prop in a Settings (sub)component
     selected_skill: Option<String>,
+    paused: bool,
+    pause_time_elapsed: Duration,
+    pause_time_started: Option<DateTime<Utc>>,
 }
 
 impl PracticePlannerApp {
@@ -104,7 +108,6 @@ impl PracticePlannerApp {
         } else if practicing && active as usize > idx {
             class.push("completed-skill")
         }
-        log::debug!("making the skill item");
         html! {
             <li {class}>
                 <div class="view">
@@ -127,7 +130,6 @@ impl PracticePlannerApp {
         _link: &Scope<Self>,
     ) -> Html {
         let _class = Classes::from("todo");
-        log::debug!("making the history list");
 
         if history_list.is_empty() {
             return html! {
@@ -182,6 +184,12 @@ impl PracticePlannerApp {
                                 <strong>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</strong>
                                 <button class="favorite styled"
                                         type="button"
+                                        onclick={link.callback(|_| Msg::PausePracticing)}
+                                        >
+                                        {"Pause Practicing"}
+                                </button>
+                                <button class="favorite styled"
+                                        type="button"
                                         onclick={link.callback(|_| Msg::StopPracticing)}
                                         >
                                         {"Stop Practicing"}
@@ -225,7 +233,6 @@ impl PracticePlannerApp {
         practice_session: &Option<PracticeSession>,
         link: &Scope<Self>,
     ) -> Html {
-        log::debug!("making the skill list");
         let active = match practice_session {
             Some(ps) => Some(ps.get_current_skill_idx()),
             None => None,
@@ -237,10 +244,8 @@ impl PracticePlannerApp {
             <ul class="skill-list">
             {
                 if self.scheduler.get_todays_schedule().is_some() {
-                    log::debug!("got a schedule for today");
                     html! { for self.scheduler.get_todays_schedule().unwrap().iter().enumerate().map(|e| self.view_skill(e, active, practicing, link)) }
                 } else {
-                    log::debug!("no schedule available :(");
                     html! {}
                 }
             }
@@ -293,6 +298,7 @@ impl Component for PracticePlannerApp {
                 event_bus: EventBus::dispatcher(),
                 active_tab: 0,
                 modal_closed: false,
+                paused: false,
                 displaying_modal: true,
                 modal_content: html! {
                     <div>
@@ -315,6 +321,8 @@ impl Component for PracticePlannerApp {
                 first_page_view,
                 practice_minutes,
                 selected_skill: None,
+                pause_time_elapsed: Duration::seconds(0),
+                pause_time_started: None,
             }
         } else {
             Self {
@@ -322,7 +330,9 @@ impl Component for PracticePlannerApp {
                 interval: None,
                 event_bus: EventBus::dispatcher(),
                 active_tab: 0,
+                pause_time_elapsed: Duration::seconds(0),
                 modal_closed: false,
+                paused: false,
                 displaying_modal: false,
                 modal_content: html! {},
                 modal_title: "Danger".to_string(),
@@ -330,6 +340,7 @@ impl Component for PracticePlannerApp {
                 first_page_view,
                 practice_minutes,
                 selected_skill: None,
+                pause_time_started: None,
             }
         }
     }
@@ -353,7 +364,6 @@ impl Component for PracticePlannerApp {
                 let skill_count = skill_count_el.value();
 
                 // validate
-                log::debug!("{} {}", skill_minutes, skill_count);
                 let skill_minutes = skill_minutes.parse::<i64>().unwrap();
                 let skill_count = skill_count.parse::<usize>().unwrap();
 
@@ -447,6 +457,28 @@ impl Component for PracticePlannerApp {
                         .expect("able to update schedule");
                 }
             }
+            Msg::PausePracticing => {
+                self.paused = !self.paused;
+                if !self.paused {
+                    let now = get_current_time();
+                    // pause time elapsed is a cumulative amount of time spent paused that has elapsed since the category started
+                    self.pause_time_elapsed = self
+                        .pause_time_elapsed
+                        .add(now - self.pause_time_started.unwrap());
+                    self.pause_time_started = None;
+                    let handle = {
+                        let link = ctx.link().clone();
+                        Interval::new(100, move || link.send_message(Msg::PracticeTick))
+                    };
+                    self.interval = Some(handle);
+                    return true;
+                }
+                let now = get_current_time();
+                self.pause_time_started = Some(now);
+                if let Some(timer) = self.interval.take() {
+                    drop(timer);
+                }
+            }
             Msg::StopPracticing => {
                 let current_time = get_current_time();
                 self.scheduler
@@ -462,16 +494,16 @@ impl Component for PracticePlannerApp {
                 }
             }
             Msg::PracticeTick => {
-                log::debug!("Tick");
-
                 let now = get_current_time();
-                let time_elapsed = now.sub(
-                    self.scheduler
-                        .practice_session
-                        .as_ref()
-                        .unwrap()
-                        .skill_start_time,
-                );
+                let time_elapsed = now
+                    .sub(
+                        self.scheduler
+                            .practice_session
+                            .as_ref()
+                            .unwrap()
+                            .skill_start_time,
+                    )
+                    .sub(self.pause_time_elapsed);
                 let total_time = self.scheduler.config.skill_practice_time;
 
                 if time_elapsed > total_time {
@@ -494,6 +526,8 @@ impl Component for PracticePlannerApp {
                             .update_todays_schedule(false, now)
                             .expect("unable to update schedule");
                     }
+
+                    self.pause_time_elapsed = Duration::seconds(0);
                 }
                 let time_left = total_time - time_elapsed;
                 self.scheduler
@@ -525,7 +559,6 @@ impl Component for PracticePlannerApp {
                 self.active_tab = i;
             }
             Msg::CloseModal => {
-                log::debug!("Close modal");
                 self.modal_closed = true;
                 // vv that's bad TODO fix
                 self.first_page_view = false;
@@ -584,12 +617,10 @@ impl Component for PracticePlannerApp {
             }
             Msg::SelectSkill(opt) => {
                 // display the delete icon next to it
-                log::debug!("SelectSkill");
                 self.selected_skill = Some(opt.value());
                 return true;
             }
             Msg::ShowDeleteSkillPrompt => {
-                log::debug!("ShowDeleteSkillPrompt");
                 // display a prompt because this is a pretty srs irreversible move
 
                 self.displaying_modal = true;
@@ -617,7 +648,6 @@ impl Component for PracticePlannerApp {
                 };
             }
             Msg::DeleteSkill => {
-                log::debug!("DeleteSkill");
                 if self.selected_skill.is_none() {
                     log::warn!("Tried deleting with nonexistent selected skill");
                     return false;
@@ -650,9 +680,6 @@ impl Component for PracticePlannerApp {
         // i.e. have today's schedule stored in state and updated in `update` rather than
         // recalculated every re-render
         let _hidden_class = "hidden";
-        if self.scheduler.practicing {
-            log::debug!("currently practicing");
-        }
 
         let modal_props = ModalDisplayProps {
             modal_type: self.modal_type.to_string(),
