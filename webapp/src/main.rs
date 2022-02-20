@@ -181,19 +181,23 @@ impl PracticePlannerApp {
                         html!{
                             <>
                             <div class="level-item">
-                                <strong>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</strong>
-                                <button class="favorite styled"
-                                        type="button"
-                                        onclick={link.callback(|_| Msg::PausePracticing)}
-                                        >
-                                        {"Pause Practicing"}
-                                </button>
-                                <button class="favorite styled"
-                                        type="button"
-                                        onclick={link.callback(|_| Msg::StopPracticing)}
-                                        >
-                                        {"Stop Practicing"}
-                                </button>
+                                <div class="column">
+                                    <div><strong>{ "Time left: " }{ self.scheduler.practice_session.as_ref().unwrap().time_left.hhmmss() }</strong></div>
+                                    <div>
+                                        <button class="favorite styled"
+                                                type="button"
+                                                onclick={link.callback(|_| Msg::PausePracticing)}
+                                                >
+                                                {"Pause Practicing"}
+                                        </button>
+                                        <button class="favorite styled"
+                                                type="button"
+                                                onclick={link.callback(|_| Msg::StopPracticing)}
+                                                >
+                                                {"Stop Practicing"}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                             </>
                         }
@@ -503,6 +507,11 @@ impl Component for PracticePlannerApp {
                 if let Some(timer) = self.interval.take() {
                     drop(timer);
                 }
+
+                // Reset pause
+                self.pause_time_elapsed = Duration::seconds(0);
+                self.pause_time_started = None;
+                self.paused = false;
             }
             Msg::PracticeTick => {
                 let now = get_current_time();
