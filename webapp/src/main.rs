@@ -683,7 +683,7 @@ impl Component for PracticePlannerApp {
                 // TODO should find a better identifier to pass between client/server
                 let skill = self.selected_skill.as_ref().unwrap().clone();
                 self.scheduler
-                    .delete_skill_string(skill)
+                    .delete_skill_string(&skill)
                     .expect("delete skill failure");
 
                 self.save().expect("unable to save");
@@ -757,6 +757,27 @@ impl Component for PracticePlannerApp {
                     html! { <option value={skill.skill_name.clone()} onclick={ctx.link().callback(|e: MouseEvent| Msg::SelectSkill(e.target_unchecked_into::<HtmlOptionElement>()))}>{skill.skill_name.clone()}</option> }
                 })
                 .collect::<Vec<_>>();
+        let edited_skill_exercises = match &self.selected_skill {
+            Some(skill) => match self.scheduler.get_skill_string(skill) {
+                Some(skill) => {
+                    let skill_exercises = skill.exercises.clone();
+                    let skill_exercises_list = skill_exercises
+                            .iter()
+                            .map(|exercise| {
+                                html! { <option value={exercise.exercise_name.clone()}>{exercise.exercise_name.clone()}</option> }
+                            })
+                            .collect::<Vec<_>>();
+                    skill_exercises_list
+                }
+                None => {
+                    log::warn!("Unable to retrieve skill");
+                    vec![]
+                }
+            },
+            None => {
+                vec![html! {<></>}]
+            }
+        };
         html! {
             <>
             <ModalDisplay ..modal_props/>
@@ -781,6 +802,7 @@ impl Component for PracticePlannerApp {
                     </a>
                     <div class="tile is-parent">
                     <div class="tile is-child content is-large is-vertical app-panel">
+                    // TODO: move tabs to different source file!
                     if self.active_tab == 0 {
                         {self.view_practice_tab(&self.scheduler.practice_session, ctx.link())}
                     } else if self.active_tab == 1 {
@@ -806,6 +828,7 @@ impl Component for PracticePlannerApp {
                         {
                             if self.selected_skill.is_some() {
                                 html! {
+                                    <>
                                     <div class="icon-text">
                                         <a title="Delete Skill" onclick={ctx.link().callback(|_| Msg::ShowDeleteSkillPrompt)}>
                                             <span class="icon is-medium has-text-success">
@@ -813,6 +836,15 @@ impl Component for PracticePlannerApp {
                                             </span>
                                         </a>
                                     </div>
+                                    <div>
+                                        <label for="exercise_list">{"Exercises"}</label>
+                                        <div class="select is-multiple">
+                                        <select id="exercise_list" multiple=true>
+                                            { edited_skill_exercises }
+                                        </select>
+                                        </div>
+                                    </div>
+                                    </>
                                 }
                             } else {
                                 html! {<></>}

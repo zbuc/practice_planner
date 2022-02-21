@@ -529,7 +529,8 @@ impl<'a> SchedulePlanner {
         self.history = BTreeMap::new();
     }
 
-    pub fn delete_skill_string(&mut self, skill_string: String) -> Result<()> {
+    // TODO: this is a bad method, i don't like using a string to index in here
+    pub fn delete_skill_string(&mut self, skill_string: &str) -> Result<()> {
         let skill: Vec<&PracticeSkill> = self
             .config
             .skills
@@ -546,6 +547,26 @@ impl<'a> SchedulePlanner {
         }
 
         Ok(())
+    }
+
+    // TODO: this is a bad method, i don't like using a string to index in here
+    pub fn get_skill_string(&self, skill_string: &str) -> Option<PracticeSkill> {
+        let skill: Vec<&PracticeSkill> = self
+            .config
+            .skills
+            .iter()
+            .filter(|s| s.skill_name == skill_string)
+            .collect();
+
+        if skill.len() == 0 {
+            return None;
+        }
+
+        if let Some(pos) = self.config.skills.iter().position(|x| x == skill[0]) {
+            return Some(self.config.skills[pos].clone());
+        }
+
+        None
     }
 
     pub fn update_todays_schedule(
