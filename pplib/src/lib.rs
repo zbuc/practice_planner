@@ -8,7 +8,6 @@ use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::ops::Sub;
-use std::rc::Rc;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -19,224 +18,8 @@ use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-lazy_static! {
-    pub(crate) static ref DEFAULT_CATEGORIES: Vec<PracticeSkill> = vec![
-        PracticeSkill {
-            skill_name: "Ear Training".to_string(),
-            exercises: vec![
-                Arc::new(PracticeExercise {
-                exercise_name: "Exercise 1".to_string(),
-                exercise_markdown_contents:
-                            "# Ear Training Exercises
-## Exercise #1
-
-Perform one of the exercises from [Justinguitar](https://www.justinguitar.com/guitar-lessons/justin-ear-training-exercises-s1-bc-118).
-
-".to_string(),
-
-            }),
-            Arc::new(PracticeExercise {
-                exercise_name: "Exercise 2".to_string(),
-                exercise_markdown_contents:
-                            "# Ear Training Exercises
-## Exercise #2
-
-Play random two-note dyads and try to identify the intervals by sound.
-
-".to_string(),
-
-            }),
-            ]
-        },
-        PracticeSkill {
-            skill_name: "Left Hand Exercises".to_string(),
-            exercises: vec![Arc::new(PracticeExercise {
-                exercise_name: "Exercise 1".to_string(),
-                exercise_markdown_contents:
-            "# Left Hand Exercises
-## Exercise #1
-
-Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
-
-Either alternate pick or use all downstrokes.
-
-<div class=\"vextab-auto\" width=\"680\" scale=\"1.0\" show_errors=\"true\" editor=\"false\">options space=20
-tab-stems=true tab-stem-direction=up
-tabstave notation=false time=4/4
-
-notes :8 1-2-3-4/6 1-2-3-4/5 | 1-2-3-4/4 1-2-3-4/3 | 1-2-3-4/2 1-2-3-4/1 |
-tabstave notation=false time=4/4
-notes :8 1-2-3-4/2 1-2-3-4/3 | 1-2-3-4/4 1-2-3-4/5 | 1-2-3-4/6 :h ## =|=
-
-options space=25
-</div>
-".to_string(),
-
-            })]
-        },
-        PracticeSkill {
-            skill_name: "Alternate Picking Exercises".to_string(),
-            exercises: vec![Arc::new(PracticeExercise {
-                exercise_name: "Exercise 1".to_string(),
-                exercise_markdown_contents:
-                            "# Alternate Picking Exercises
-## Exercise #1
-
-Practice the following pattern starting at every fret from 1 to 12, starting at a lower tempo with equal note durations.
-
-Use alternate picking. Try starting with either an upstroke or downstroke.
-
-<div class=\"vextab-auto\" width=\"680\" scale=\"1.0\" show_errors=\"true\" editor=\"false\">options space=20
-tab-stems=true tab-stem-direction=up
-tabstave notation=false time=4/4
-
-notes :8 1/6 2/5 3/6 4/5 1/5 2/4 3/5 4/4 | 1/4 2/3 3/4 4/3 1/3 2/2 3/3 4/2 | 1/2 2/1 3/2 4/1 1/1 2/2 3/1 4/2 |
-tabstave notation=false time=4/4
-notes :8 1/2 2/3 3/2 4/3 1/3 2/4 3/3 4/4 | 1/4 2/5 3/4 4/5 1/5 2/6 3/5 4/6 =|=
-
-options space=25
-</div>
-```
-```
-
-".to_string(),
-
-            })]
-        },
-        PracticeSkill {
-            skill_name: "Chords".to_string(),
-            exercises: vec![Arc::new(PracticeExercise {
-                exercise_name: "Exercise 1".to_string(),
-                exercise_markdown_contents:
-                            "# Chord Exercises
-## Exercise #1
-
-Play every major chord from A to G in root position, and then every minor chord.
-
-Move up to the next position and repeat.
-
-".to_string(),
-
-            })]
-        },
-        PracticeSkill {
-            skill_name: "Scales".to_string(),
-            exercises: vec![Arc::new(PracticeExercise {
-                exercise_name: "Exercise 1".to_string(),
-                exercise_markdown_contents:
-                            "# Scale Exercises
-## Exercise #1
-
-Play a scale to a metronome in different positions. Increase the tempo after you've played the scale perfectly four times.
-
-".to_string(),
-
-            })]
-        },
-        PracticeSkill {
-            skill_name: "Sight Reading".to_string(),
-            exercises: vec![Arc::new(PracticeExercise {
-                exercise_name: "Exercise 1".to_string(),
-                exercise_markdown_contents:
-                            "# Sight Reading Exercises
-## Exercise #1
-
-Play the following passage:
-
-
-<div class=\"vextab-auto\" width=\"680\" scale=\"1.0\" show_errors=\"true\" editor=\"false\">options space=20
-tabstave notation=true time=4/4 tablature=false
-
-notes :8 1-2-3-4/6 1-2-3-4/5 | 1-2-3-4/4 1-2-3-4/3 | 1-2-3-4/2 1-2-3-4/1 |
-tabstave notation=true time=4/4 tablature=false
-notes :8 1-2-3-4/2 1-2-3-4/3 | 1-2-3-4/4 1-2-3-4/5 | 1-2-3-4/6 :h ## =|=
-
-options space=25
-</div>
-".to_string(),
-
-            })]
-        },
-        PracticeSkill {
-            skill_name: "Music Theory".to_string(),
-            exercises: vec![Arc::new(PracticeExercise {
-                exercise_name: "Exercise 1".to_string(),
-                exercise_markdown_contents:
-                            "# Music Theory Exercises
-## Exercise #1
-
-For every note A to G, play the note and then the relative minor.
-
-".to_string(),
-
-            })]
-        },
-        PracticeSkill {
-            skill_name: "Improvisation".to_string(),
-            exercises: vec![Arc::new(PracticeExercise {
-                exercise_name: "Exercise 1".to_string(),
-                exercise_markdown_contents:
-                            "# Improvisation Exercises
-## Exercise #1
-
-Play along to a backing track.
-
-".to_string(),
-
-            })]
-        },
-        PracticeSkill {
-            skill_name: "Songwriting".to_string(),
-            exercises: vec![Arc::new(PracticeExercise {
-                exercise_name: "Exercise 1".to_string(),
-                exercise_markdown_contents:
-                            "# Songwriting Exercises
-## Exercise #1
-
-Work on a song.
-
-Maybe you could write about your song here.
-
-".to_string(),
-
-            })]
-        },
-        PracticeSkill {
-            skill_name: "Rhythm".to_string(),
-            exercises: vec![Arc::new(PracticeExercise {
-                exercise_name: "Exercise 1".to_string(),
-                exercise_markdown_contents:
-                            "# Rhythm Exercises
-## Exercise #1
-
-Play an open string along to a metronome at a slow tempo.
-
-Alternate playing whole measures as quarter notes and eighth notes.
-
-".to_string(),
-
-            })]
-        },
-        PracticeSkill {
-            skill_name: "Learn A Song".to_string(),
-            exercises: vec![Arc::new(PracticeExercise {
-                exercise_name: "Exercise 1".to_string(),
-                exercise_markdown_contents:
-                            "# Learn A Song
-## Exercise #1
-
-Work on learning that song you wanted to play.
-
-You can embed videos here, for example:
-
-<iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/Z4z4hc5gg60\" title=\"YouTube video player\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>
-
-".to_string(),
-
-            })]
-        },
-    ];
-}
+mod constants;
+use crate::constants::*;
 
 #[derive(Error, Debug)]
 pub enum SchedulerError {
@@ -280,15 +63,15 @@ pub struct PlannerConfiguration {
     pub skill_repeat_days: usize,
     /// The number of skills to practice per day.
     pub skills_per_day: usize,
-    pub skills: Vec<PracticeSkill>,
+    pub skills: Vec<Arc<PracticeSkill>>,
 }
 
 #[derive(Debug)]
 pub struct SchedulePlanner {
     pub config: PlannerConfiguration,
     /// BTreeMap containing historical practice sessions.
-    pub history: BTreeMap<DateTime<Utc>, Vec<PracticeSkill>>,
-    pub todays_schedule: Option<Vec<PracticeSkill>>,
+    pub history: BTreeMap<DateTime<Utc>, Vec<Arc<PracticeSkill>>>,
+    pub todays_schedule: Option<Vec<Arc<PracticeSkill>>>,
     /// Whether a practice session is currently underway
     pub practicing: bool,
     /// The in-progress practice session
@@ -302,8 +85,8 @@ pub struct PracticeSession {
     // but the lifetimes got annoying and I gave up and there is some
     // duplicated data right now, we aren't using Rc right and it should
     // probably be Arc anyhow
-    pub schedule: Vec<Rc<PracticeSkill>>,
-    pub current_skill: Rc<PracticeSkill>,
+    pub schedule: Vec<Arc<PracticeSkill>>,
+    pub current_skill: Arc<PracticeSkill>,
     pub current_exercise: Option<Arc<PracticeExercise>>,
     pub time_left: Duration,
     pub start_time: DateTime<Utc>,
@@ -311,13 +94,12 @@ pub struct PracticeSession {
 }
 
 impl PracticeSession {
-    pub fn new(schedule: Vec<PracticeSkill>, current_time: DateTime<Utc>) -> Self {
-        let schedule: Vec<Rc<PracticeSkill>> =
-            schedule.iter().map(|c| Rc::new(c.clone())).collect();
+    pub fn new(schedule: Vec<Arc<PracticeSkill>>, current_time: DateTime<Utc>) -> Self {
+        let schedule: Vec<Arc<PracticeSkill>> = schedule.iter().map(|c| c.clone()).collect();
         let current_skill = &schedule[0];
         PracticeSession {
             schedule: schedule.to_owned(),
-            current_skill: Rc::clone(current_skill),
+            current_skill: Arc::clone(current_skill),
             time_left: Duration::seconds(0),
             // TODO maybe make an Option type
             start_time: current_time,
@@ -392,7 +174,7 @@ impl PracticeSession {
         let mut i = 0;
         for skill in &self.schedule {
             if i == idx {
-                self.current_skill = Rc::clone(skill);
+                self.current_skill = Arc::clone(skill);
                 break;
             }
             i = i + 1;
@@ -432,7 +214,11 @@ impl<'a> SchedulePlanner {
                 skills_per_day: 4,
                 skill_practice_time: Duration::minutes(15),
                 skill_repeat_days: 2,
-                skills: DEFAULT_CATEGORIES.to_vec(),
+                skills: DEFAULT_CATEGORIES
+                    .to_vec()
+                    .iter()
+                    .map(|c| Arc::new(c.clone()))
+                    .collect(),
             },
             history: BTreeMap::new(),
             todays_schedule: None,
@@ -441,7 +227,7 @@ impl<'a> SchedulePlanner {
         }
     }
 
-    pub fn get_todays_schedule(&self) -> Option<&Vec<PracticeSkill>> {
+    pub fn get_todays_schedule(&self) -> Option<&Vec<Arc<PracticeSkill>>> {
         log::debug!("get_todays_schedule");
         self.todays_schedule.as_ref()
     }
@@ -478,12 +264,13 @@ impl<'a> SchedulePlanner {
         &self,
         n: usize,
         current_time: DateTime<Utc>,
-    ) -> Result<BTreeMap<Date<Utc>, HashSet<&PracticeSkill>>> {
+    ) -> Result<BTreeMap<Date<Utc>, HashSet<Arc<PracticeSkill>>>> {
         let n_days_back = current_time.checked_sub_signed(Duration::days(n.try_into().unwrap()));
         if n_days_back.is_none() {
             return Err(anyhow::anyhow!("Invalid historical search term"));
         }
-        let mut historical_skills: BTreeMap<Date<Utc>, HashSet<&PracticeSkill>> = BTreeMap::new();
+        let mut historical_skills: BTreeMap<Date<Utc>, HashSet<Arc<PracticeSkill>>> =
+            BTreeMap::new();
 
         for (key, value) in self.history.iter().rev() {
             // if the history item is within the last n days...
@@ -499,7 +286,7 @@ impl<'a> SchedulePlanner {
                         }
                     };
 
-                    day_skills.insert(v);
+                    day_skills.insert(v.clone());
                 }
             } else {
                 // since keys are sorted we can break early
@@ -526,44 +313,12 @@ impl<'a> SchedulePlanner {
         self.history = BTreeMap::new();
     }
 
-    // TODO: this is a bad method, i don't like using a string to index in here -- use Arc<Skill>?
-    pub fn delete_skill_string(&mut self, skill_string: &str) -> Result<()> {
-        let skill: Vec<&PracticeSkill> = self
-            .config
-            .skills
-            .iter()
-            .filter(|s| s.skill_name == skill_string)
-            .collect();
-
-        if skill.len() == 0 {
-            return Err(anyhow::anyhow!("Expected to find skill being deleted"));
-        }
-
-        if let Some(pos) = self.config.skills.iter().position(|x| x == skill[0]) {
+    pub fn delete_skill(&mut self, skill: Arc<PracticeSkill>) -> Result<()> {
+        if let Some(pos) = self.config.skills.iter().position(|x| *x == skill) {
             self.config.skills.remove(pos);
         }
 
         Ok(())
-    }
-
-    // TODO: this is a bad method, i don't like using a string to index in here -- use Arc<Skill>?
-    pub fn get_skill_string(&self, skill_string: &str) -> Option<PracticeSkill> {
-        let skill: Vec<&PracticeSkill> = self
-            .config
-            .skills
-            .iter()
-            .filter(|s| s.skill_name == skill_string)
-            .collect();
-
-        if skill.len() == 0 {
-            return None;
-        }
-
-        if let Some(pos) = self.config.skills.iter().position(|x| x == skill[0]) {
-            return Some(self.config.skills[pos].clone());
-        }
-
-        None
     }
 
     pub fn update_todays_schedule(
@@ -584,7 +339,7 @@ impl<'a> SchedulePlanner {
             self.get_history_n_days_back(self.config.skill_repeat_days, current_time)?;
         let prob_bandwidth: f64 = 100.0 / self.config.skill_repeat_days as f64;
 
-        let mut probabilities: BTreeMap<&PracticeSkill, u64> = BTreeMap::new();
+        let mut probabilities: BTreeMap<Arc<PracticeSkill>, u64> = BTreeMap::new();
 
         for skill in &self.config.skills {
             let mut seen = false;
@@ -597,14 +352,14 @@ impl<'a> SchedulePlanner {
 
                 // if we have seen this before, weight the probability by the day seen
                 if seen {
-                    probabilities.insert(skill, prob_bandwidth as u64 * d);
+                    probabilities.insert(skill.clone(), prob_bandwidth as u64 * d);
                 }
                 d = d + 1;
             }
 
             // if any skills do not appear in last n days history at all, set probability to 100%
             if !seen {
-                probabilities.insert(skill, 100);
+                probabilities.insert(skill.clone(), 100);
                 continue;
             }
         }
@@ -619,7 +374,7 @@ impl<'a> SchedulePlanner {
                 })
                 .unwrap()
                 .map(|item| item.0.to_owned().to_owned())
-                .collect::<Vec<PracticeSkill>>(),
+                .collect::<Vec<Arc<PracticeSkill>>>(),
         );
         return Ok(());
     }

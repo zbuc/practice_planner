@@ -2,12 +2,11 @@
 #[macro_use]
 extern crate lazy_static;
 
-// use std;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
 use std::ops::Add;
 use std::ops::Sub;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use anyhow::Result;
 use chrono::Duration;
@@ -15,6 +14,7 @@ use chrono::{Date, DateTime, Utc};
 use gloo::storage::{LocalStorage, Storage};
 use gloo::timers::callback::Interval;
 use hhmmss::Hhmmss;
+use pplib::PracticeExercise;
 use pplib::PracticeSession;
 use pulldown_cmark::{html::push_html, Options, Parser};
 use wasm_bindgen::JsCast;
@@ -57,6 +57,7 @@ pub enum Msg {
     ShowHelp,
     SetHelp,
     SelectSkill(HtmlOptionElement),
+    SelectExercise(HtmlOptionElement),
     ShowDeleteSkillPrompt,
     ShowResetSettingsPrompt,
     ResetSettings,
@@ -88,11 +89,12 @@ pub struct PracticePlannerApp {
     // the web app allows users to set practice time in terms of minutes
     practice_minutes: usize,
     // TODO this should really be a prop in a Settings (sub)component
-    selected_skill: Option<String>,
+    selected_skill: Option<Arc<PracticeSkill>>,
+    // TODO this should really be a prop in a Settings (sub)component
+    selected_exercise: Option<Arc<PracticeExercise>>,
     paused: bool,
     pause_time_elapsed: Duration,
     pause_time_started: Option<DateTime<Utc>>,
-    // TODO: no need for these both
     visible_exercise_md: String,
     rendered_exercise: Html,
 }
@@ -100,7 +102,7 @@ pub struct PracticePlannerApp {
 impl PracticePlannerApp {
     fn view_skill(
         &self,
-        (idx, skill): (usize, &PracticeSkill),
+        (idx, skill): (usize, &Arc<PracticeSkill>),
         active_idx: Option<usize>,
         practicing: bool,
         _link: &Scope<Self>,
@@ -131,7 +133,7 @@ impl PracticePlannerApp {
 
     fn view_history_list(
         &self,
-        history_list: BTreeMap<Date<Utc>, HashSet<&PracticeSkill>>,
+        history_list: BTreeMap<Date<Utc>, HashSet<Arc<PracticeSkill>>>,
         _link: &Scope<Self>,
     ) -> Html {
         let _class = Classes::from("todo");
@@ -332,6 +334,7 @@ impl Component for PracticePlannerApp {
                 first_page_view,
                 practice_minutes,
                 selected_skill: None,
+                selected_exercise: None,
                 pause_time_elapsed: Duration::seconds(0),
                 pause_time_started: None,
                 visible_exercise_md: "".to_string(),
@@ -353,6 +356,7 @@ impl Component for PracticePlannerApp {
                 first_page_view,
                 practice_minutes,
                 selected_skill: None,
+                selected_exercise: None,
                 pause_time_started: None,
                 visible_exercise_md: "".to_string(),
                 rendered_exercise: html! {},
@@ -362,6 +366,7 @@ impl Component for PracticePlannerApp {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
+            // TODO: lots of code duplication in here
             Msg::NextExercise => {
                 self.scheduler
                     .practice_session
@@ -376,6 +381,8 @@ impl Component for PracticePlannerApp {
                     None => "".to_string(),
                 };
                 self.visible_exercise_md = visible_exercise_md;
+                let rendered_exercise = render_exercise(self.visible_exercise_md.clone());
+                self.rendered_exercise = rendered_exercise;
             }
             Msg::PreviousExercise => {
                 self.scheduler
@@ -391,6 +398,8 @@ impl Component for PracticePlannerApp {
                     None => "".to_string(),
                 };
                 self.visible_exercise_md = visible_exercise_md;
+                let rendered_exercise = render_exercise(self.visible_exercise_md.clone());
+                self.rendered_exercise = rendered_exercise;
             }
             Msg::SaveSettings => {
                 // TODO: there has to be a better way to handle forms than this, but it was easy for now
@@ -550,6 +559,8 @@ impl Component for PracticePlannerApp {
                     None => "".to_string(),
                 };
                 self.visible_exercise_md = visible_exercise_md;
+                let rendered_exercise = render_exercise(self.visible_exercise_md.clone());
+                self.rendered_exercise = rendered_exercise;
             }
             Msg::PracticeTick => {
                 let now = get_current_time();
@@ -686,7 +697,21 @@ impl Component for PracticePlannerApp {
             }
             Msg::SelectSkill(opt) => {
                 // display the delete icon next to it
-                self.selected_skill = Some(opt.value());
+                let idx: usize = opt.value().parse().unwrap();
+                let selected_skill = &self.scheduler.config.skills[idx];
+
+                self.selected_skill = Some(selected_skill.clone());
+                return true;
+            }
+            Msg::SelectExercise(opt) => {
+                // display the edit box next to it
+                let exercise_id = opt.value();
+                // the index is of the exercises belonging to the
+                // selected skill
+                // TODO: handle better? or not
+                let idx: usize = exercise_id.parse().unwrap();
+                let selected_skill = self.selected_skill.as_ref().unwrap();
+                self.selected_exercise = Some(selected_skill.exercises[idx].clone());
                 return true;
             }
             Msg::ShowDeleteSkillPrompt => {
@@ -725,7 +750,7 @@ impl Component for PracticePlannerApp {
                 // TODO should find a better identifier to pass between client/server
                 let skill = self.selected_skill.as_ref().unwrap().clone();
                 self.scheduler
-                    .delete_skill_string(&skill)
+                    .delete_skill(skill)
                     .expect("delete skill failure");
 
                 self.save().expect("unable to save");
@@ -762,13 +787,11 @@ impl Component for PracticePlannerApp {
             on_tab_change: ctx.link().callback(|i: usize| Msg::ChangeTab(i)),
         };
 
-        let _active_skill: Option<Rc<PracticeSkill>> =
+        let _active_skill: Option<Arc<PracticeSkill>> =
             match &self.scheduler.practice_session.as_ref() {
-                Some(ps) => Some(Rc::clone(&ps.current_skill)),
+                Some(ps) => Some(ps.current_skill.clone()),
                 None => None,
             };
-        // TODO: store this on state and update in `update`
-        let visible_exercise_md = &self.visible_exercise_md;
 
         // TODO split the individual tab contents into their own components
 
@@ -783,27 +806,23 @@ impl Component for PracticePlannerApp {
 
         let cl = self.scheduler.config.skills
                 .iter()
-                .map(|skill| {
-                    html! { <option value={skill.skill_name.clone()} onclick={ctx.link().callback(|e: MouseEvent| Msg::SelectSkill(e.target_unchecked_into::<HtmlOptionElement>()))}>{skill.skill_name.clone()}</option> }
+                .enumerate()
+                .map(|(idx, skill)| {
+                    html! { <option value={format!("{}", idx)} onclick={ctx.link().callback(|e: MouseEvent| Msg::SelectSkill(e.target_unchecked_into::<HtmlOptionElement>()))}>{skill.skill_name.clone()}</option> }
                 })
                 .collect::<Vec<_>>();
         let edited_skill_exercises = match &self.selected_skill {
-            Some(skill) => match self.scheduler.get_skill_string(skill) {
-                Some(skill) => {
-                    let skill_exercises = skill.exercises.clone();
-                    let skill_exercises_list = skill_exercises
+            Some(skill) => {
+                let skill_exercises = skill.exercises.clone();
+                let skill_exercises_list = skill_exercises
                             .iter()
-                            .map(|exercise| {
-                                html! { <option value={exercise.exercise_name.clone()}>{exercise.exercise_name.clone()}</option> }
+                            .enumerate()
+                            .map(|(idx, exercise)| {
+                                html! { <option value={format!("{}", idx)} onclick={ctx.link().callback(|e: MouseEvent| Msg::SelectExercise(e.target_unchecked_into::<HtmlOptionElement>()))}>{exercise.exercise_name.clone()}</option> }
                             })
                             .collect::<Vec<_>>();
-                    skill_exercises_list
-                }
-                None => {
-                    log::warn!("Unable to retrieve skill");
-                    vec![]
-                }
-            },
+                skill_exercises_list
+            }
             None => {
                 vec![html! {<></>}]
             }
@@ -873,6 +892,18 @@ impl Component for PracticePlannerApp {
                                             { edited_skill_exercises }
                                         </select>
                                         </div>
+                                        {
+                                            if self.selected_exercise.is_some() {
+                                                // display an edit box for the markdown contents
+                                                html! {<>
+                                                    <textarea id="exercise_md_edit" value={self.selected_exercise.as_ref().unwrap().exercise_markdown_contents.clone()}>
+                                                    </textarea>
+
+                                                    </>}
+                                            } else {
+                                                html! {<></>}
+                                            }
+                                        }
                                     </div>
                                     </>
                                 }
