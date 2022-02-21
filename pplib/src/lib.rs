@@ -344,7 +344,7 @@ impl PracticeSession {
             .position(|e| *e == self.current_exercise.clone().unwrap())
             .unwrap();
 
-        if current_exercise_idx < self.current_skill.exercises.len() {
+        if current_exercise_idx + 1 >= self.current_skill.exercises.len() {
             // can't go past the last exercise
             return;
         }
@@ -402,6 +402,10 @@ impl PracticeSession {
         }
 
         self.skill_start_time = current_time;
+
+        // select the correct exercise
+        self.current_exercise = None;
+        self.next_exercise();
 
         // can't get this working due to lifetimes
         // self.current_skill = self
@@ -635,12 +639,17 @@ impl<'a> SchedulePlanner {
         Ok(())
     }
 
-    pub fn start_skill(&self, skill: &PracticeSkill) -> Result<()> {
+    pub fn start_skill(&mut self, skill: &PracticeSkill) -> Result<()> {
         log::debug!(
             "Starting {} minute practice for skill: {:#?}",
             self.config.skill_practice_time.num_minutes(),
             skill
         );
+
+        // Select the initial exercise to display
+        // TODO: maybe remember the exercise that was left off on last practice?
+        self.practice_session.as_mut().unwrap().current_exercise = None;
+        self.practice_session.as_mut().unwrap().next_exercise();
 
         // TODO can't sleep in yew context. need to handle differently for CLI vs
         // webapp
@@ -692,11 +701,14 @@ impl<'a> SchedulePlanner {
         self.practicing = true;
         // ensure today's schedule has been set
         self.update_todays_schedule(false, current_time)?;
-        let schedule = self.todays_schedule.as_ref().unwrap().clone();
+        let schedule = self.todays_schedule.as_mut().unwrap().clone();
         self.practice_session = Some(PracticeSession::new(schedule, current_time));
-        for skill in self.todays_schedule.as_ref().unwrap().iter() {
+        // TODO: this clone could lead to bugs if the UI let you edit exercises during
+        // a practice session, but the mutability was giving me issues
+        // so this was easiest for now
+        for skill in self.todays_schedule.clone().unwrap().iter() {
             log::debug!("Starting practice for skill: {:#?}", skill);
-            self.start_skill(&skill)?;
+            self.start_skill(skill)?;
         }
         log::debug!("Finished practicing for today!");
 

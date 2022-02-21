@@ -725,8 +725,11 @@ impl Component for PracticePlannerApp {
                 Some(ps) => Some(Rc::clone(&ps.current_skill)),
                 None => None,
             };
-        let visible_exercise_md = match active_skill {
-            Some(ac) => ac.exercises[0].exercise_markdown_contents.clone(),
+        let visible_exercise_md = match &self.scheduler.practice_session {
+            Some(ps) => match &ps.current_exercise {
+                Some(ce) => ce.exercise_markdown_contents.clone(),
+                None => "".to_string(),
+            },
             None => "".to_string(),
         };
 
