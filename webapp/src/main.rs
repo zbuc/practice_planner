@@ -92,6 +92,9 @@ pub struct PracticePlannerApp {
     paused: bool,
     pause_time_elapsed: Duration,
     pause_time_started: Option<DateTime<Utc>>,
+    // TODO: no need for these both
+    visible_exercise_md: String,
+    rendered_exercise: Html,
 }
 
 impl PracticePlannerApp {
@@ -331,6 +334,8 @@ impl Component for PracticePlannerApp {
                 selected_skill: None,
                 pause_time_elapsed: Duration::seconds(0),
                 pause_time_started: None,
+                visible_exercise_md: "".to_string(),
+                rendered_exercise: html! {},
             }
         } else {
             Self {
@@ -349,6 +354,8 @@ impl Component for PracticePlannerApp {
                 practice_minutes,
                 selected_skill: None,
                 pause_time_started: None,
+                visible_exercise_md: "".to_string(),
+                rendered_exercise: html! {},
             }
         }
     }
@@ -361,6 +368,14 @@ impl Component for PracticePlannerApp {
                     .as_mut()
                     .unwrap()
                     .next_exercise();
+                let visible_exercise_md = match &self.scheduler.practice_session {
+                    Some(ps) => match &ps.current_exercise {
+                        Some(ce) => ce.exercise_markdown_contents.clone(),
+                        None => "".to_string(),
+                    },
+                    None => "".to_string(),
+                };
+                self.visible_exercise_md = visible_exercise_md;
             }
             Msg::PreviousExercise => {
                 self.scheduler
@@ -368,6 +383,14 @@ impl Component for PracticePlannerApp {
                     .as_mut()
                     .unwrap()
                     .previous_exercise();
+                let visible_exercise_md = match &self.scheduler.practice_session {
+                    Some(ps) => match &ps.current_exercise {
+                        Some(ce) => ce.exercise_markdown_contents.clone(),
+                        None => "".to_string(),
+                    },
+                    None => "".to_string(),
+                };
+                self.visible_exercise_md = visible_exercise_md;
             }
             Msg::SaveSettings => {
                 // TODO: there has to be a better way to handle forms than this, but it was easy for now
@@ -519,6 +542,14 @@ impl Component for PracticePlannerApp {
                 self.pause_time_elapsed = Duration::seconds(0);
                 self.pause_time_started = None;
                 self.paused = false;
+                let visible_exercise_md = match &self.scheduler.practice_session {
+                    Some(ps) => match &ps.current_exercise {
+                        Some(ce) => ce.exercise_markdown_contents.clone(),
+                        None => "".to_string(),
+                    },
+                    None => "".to_string(),
+                };
+                self.visible_exercise_md = visible_exercise_md;
             }
             Msg::PracticeTick => {
                 let now = get_current_time();
@@ -578,9 +609,20 @@ impl Component for PracticePlannerApp {
                     self.scheduler.config.skill_practice_time;
                 let handle = {
                     let link = ctx.link().clone();
-                    Interval::new(100, move || link.send_message(Msg::PracticeTick))
+                    Interval::new(500, move || link.send_message(Msg::PracticeTick))
                 };
                 self.interval = Some(handle);
+
+                let visible_exercise_md = match &self.scheduler.practice_session {
+                    Some(ps) => match &ps.current_exercise {
+                        Some(ce) => ce.exercise_markdown_contents.clone(),
+                        None => "".to_string(),
+                    },
+                    None => "".to_string(),
+                };
+                self.visible_exercise_md = visible_exercise_md;
+                let rendered_exercise = render_exercise(self.visible_exercise_md.clone());
+                self.rendered_exercise = rendered_exercise;
             }
             Msg::ChangeTab(i) => {
                 self.active_tab = i;
@@ -696,7 +738,7 @@ impl Component for PracticePlannerApp {
         true
     }
 
-    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
+    fn rendered(&mut self, _ctx: &Context<Self>, _first_render: bool) {
         // render the tabs
         create_tab();
     }
@@ -720,27 +762,15 @@ impl Component for PracticePlannerApp {
             on_tab_change: ctx.link().callback(|i: usize| Msg::ChangeTab(i)),
         };
 
-        let active_skill: Option<Rc<PracticeSkill>> =
+        let _active_skill: Option<Rc<PracticeSkill>> =
             match &self.scheduler.practice_session.as_ref() {
                 Some(ps) => Some(Rc::clone(&ps.current_skill)),
                 None => None,
             };
-        let visible_exercise_md = match &self.scheduler.practice_session {
-            Some(ps) => match &ps.current_exercise {
-                Some(ce) => ce.exercise_markdown_contents.clone(),
-                None => "".to_string(),
-            },
-            None => "".to_string(),
-        };
+        // TODO: store this on state and update in `update`
+        let visible_exercise_md = &self.visible_exercise_md;
 
         // TODO split the individual tab contents into their own components
-        let parse_html = parse_markdown_text(&visible_exercise_md);
-        let html_text = format!("<div class='preview'>{}</div>", &parse_html);
-        let window = web_sys::window().expect("no global `window` exists");
-        let document = window.document().expect("should have a document on window");
-        let val = document.create_element("div").unwrap();
-        val.set_inner_html(&html_text);
-        let rendered_exercise = VNode::VRef(val.into());
 
         let current_time = get_current_time();
         let streak = self.scheduler.get_streak(current_time);
@@ -878,7 +908,7 @@ impl Component for PracticePlannerApp {
                     <div class="tile is-child content app-panel">
                         {if self.scheduler.practicing {
 
-                        rendered_exercise
+                            self.rendered_exercise.clone()
                         } else {
                             html! {<></>}
                         }
@@ -942,6 +972,16 @@ fn parse_markdown_text(value: &str) -> String {
     push_html(&mut parsed_text, parser);
 
     parsed_text
+}
+
+fn render_exercise(ex: String) -> Html {
+    let parse_html = parse_markdown_text(&ex);
+    let html_text = format!("<div class='preview'>{}</div>", &parse_html);
+    let window = web_sys::window().expect("no global `window` exists");
+    let document = window.document().expect("should have a document on window");
+    let val = document.create_element("div").unwrap();
+    val.set_inner_html(&html_text);
+    VNode::VRef(val.into())
 }
 
 fn main() {

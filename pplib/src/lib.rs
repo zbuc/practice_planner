@@ -3,7 +3,6 @@ extern crate lazy_static;
 
 use std;
 use std::collections::BTreeMap;
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
@@ -20,8 +19,6 @@ use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-// TODO look at https://www.vexflow.com/ for notation
-// https://rustwasm.github.io/wasm-bindgen/examples/import-js.html
 lazy_static! {
     pub(crate) static ref DEFAULT_CATEGORIES: Vec<PracticeSkill> = vec![
         PracticeSkill {
@@ -529,7 +526,7 @@ impl<'a> SchedulePlanner {
         self.history = BTreeMap::new();
     }
 
-    // TODO: this is a bad method, i don't like using a string to index in here
+    // TODO: this is a bad method, i don't like using a string to index in here -- use Arc<Skill>?
     pub fn delete_skill_string(&mut self, skill_string: &str) -> Result<()> {
         let skill: Vec<&PracticeSkill> = self
             .config
@@ -549,7 +546,7 @@ impl<'a> SchedulePlanner {
         Ok(())
     }
 
-    // TODO: this is a bad method, i don't like using a string to index in here
+    // TODO: this is a bad method, i don't like using a string to index in here -- use Arc<Skill>?
     pub fn get_skill_string(&self, skill_string: &str) -> Option<PracticeSkill> {
         let skill: Vec<&PracticeSkill> = self
             .config
