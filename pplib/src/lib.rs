@@ -344,7 +344,7 @@ impl PracticeSession {
             .position(|e| *e == self.current_exercise.clone().unwrap())
             .unwrap();
 
-        if current_exercise_idx + 1 < self.current_skill.exercises.len() {
+        if current_exercise_idx < self.current_skill.exercises.len() {
             // can't go past the last exercise
             return;
         }
@@ -368,8 +368,10 @@ impl PracticeSession {
             .position(|e| *e == self.current_exercise.clone().unwrap())
             .unwrap();
 
-        // min(usize) == 0
-        // so we don't need to worry about underflow here
+        if current_exercise_idx == 0 {
+            return;
+        }
+
         self.current_exercise =
             Some(self.current_skill.exercises[current_exercise_idx - 1].clone());
     }
